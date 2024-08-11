@@ -160,7 +160,7 @@ The main function
 def main():
 
     # defining the values of beta
-    betas = [0.1, 0.3, 0.5, 0.8]
+    betas = np.round(np.linspace(0,1,21),2)
 
      # defining the value of d_0
     d_0 = 3

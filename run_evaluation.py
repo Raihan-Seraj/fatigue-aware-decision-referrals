@@ -35,7 +35,7 @@ def compute_kesavs_algo(
 
     all_cost = []
     all_deferred_indices =[]
-    for w_t in range(ut.num_tasks_per_batch):
+    for w_t in range(ut.num_tasks_per_batch+1):
 
         cstar, deferred_indices, gbar = ut.compute_cstar(
             F_t,

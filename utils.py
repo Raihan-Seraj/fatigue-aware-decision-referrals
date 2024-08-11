@@ -165,8 +165,8 @@ class Utils(object):
 
     def tau(self,w_t, F_t):
 
-        tau = self.d_0 * (1 - self.beta * (w_t / self.w_0) - (1 - self.beta) * F_t) / 2 + (
-            self.sigma_h**2 / (self.d_0 * (1 - self.beta * (w_t / self.w_0) - (1 - self.beta) * F_t))
+        tau = self.d_0 * (1 - self.beta * min((w_t / self.w_0),1) - (1 - self.beta) * F_t) / 2 + (
+            self.sigma_h**2 / (self.d_0 * (1 - self.beta * min((w_t / self.w_0),1) - (1 - self.beta) * F_t))
         ) * np.log((self.cfp - self.ctn) * self.prior[0] / ((self.cfn - self.ctp) * self.prior[1]))
 
         return tau
@@ -193,7 +193,7 @@ class Utils(object):
 
         # computing true positive probability of the human
         P_h_tp = 1 - norm.cdf(
-            (tau_wf - self.d_0 * (1 - self.beta * (w_t / self.w_0) - (1 - self.beta) * F_t)) / self.sigma_h,
+            (tau_wf - self.d_0 * (1 - self.beta * min((w_t / self.w_0),1) - (1 - self.beta) * F_t)) / self.sigma_h,
             loc=0,
             scale=1,
         )
@@ -285,7 +285,7 @@ class Utils(object):
         # computing true positive probability of the human
 
         P_h_tp = 1 - norm.cdf(
-            (tau_wf - self.d_0 * (1 - self.beta * (w_t / self.w_0) - (1 - self.beta) * F_t)) / self.sigma_h,
+            (tau_wf - self.d_0 * (1 - self.beta * min((w_t / self.w_0),1) - (1 - self.beta) * F_t)) / self.sigma_h,
             loc=0,
             scale=1,
         )
