@@ -148,6 +148,8 @@ def run_dp_parallel_beta(num_tasks_per_batch, mu, lamda, w_0, sigma_a, H0, H1, p
     V_final = V_func[0]
     np.save(path_name + "V_bar.npy", V_final)
 
+    return
+
 
 
 
