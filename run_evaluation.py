@@ -332,8 +332,8 @@ def run_evalutation(beta, simulation_time=100, result_path='results/'):
 
 def main():
 
-    betas = [0.1,0.3,0.5,0.8]
-    #betas = [0.1]
+    #betas = [0.1,0.3,0.5,0.8]
+    betas = np.round(np.linspace(0,1,21),2)
     for beta in betas:
 
         fatigue_evolution_kesav,fatigue_evolution_adp, taskload_evolution_kesav, taskload_evolution_adp = run_evalutation(beta)
