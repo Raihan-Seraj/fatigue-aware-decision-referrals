@@ -162,9 +162,9 @@ The main function
 def main():
 
     # defining the values of beta
-    betas = np.round(np.linspace(0,1,21),2)
-
-     # defining the value of d_0
+    #betas = np.round(np.linspace(0,1,21),2)
+    betas = np.round(np.linspace(0.05,0.95,19),2)
+    # defining the value of d_0
     d_0 = 3
     # defining the prior distribution of H_0 and H_1 respectively
     prior = [0.8, 0.2]

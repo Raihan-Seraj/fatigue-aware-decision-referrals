@@ -115,7 +115,11 @@ def compute_performance(betas, simulation_time=100, num_runs=100, result_path='r
 
     result_dataset = pd.DataFrame(columns=['Algorithm Name','Beta Value','Avg Cost'])
 
+   
+
     for beta in betas:
+
+        print("Computing peformance with beta = "+str(beta)+'\n')
 
         param_path = result_path+'num_tasks 20'+'/beta '+str(beta)+'/params.json'
 
@@ -173,7 +177,7 @@ def compute_performance(betas, simulation_time=100, num_runs=100, result_path='r
 
             cost_adp = 0
             cost_k = 0
-            for t in tqdm(range(simulation_time)):
+            for t in range(simulation_time):
 
 
                 batched_obs, batched_posterior_h0, batched_posterior_h1=ut.get_auto_obs()
@@ -226,11 +230,13 @@ def compute_performance(betas, simulation_time=100, num_runs=100, result_path='r
 
         np.save(path3+'all_avg_cost_k.npy',all_avg_cost_k)
         
+        result_dataset.to_csv('plot_analysis/plot_data.csv')
 
-
-    sns.boxplot(data=result_dataset, x="Beta Value", y="Avg Cost", hue= "Algorithm Name",gap=0.1)
-    plt.savefig('plot_analysis/cost_comparison/cost_comparison_beta.pdf')
-    
+        sns.boxplot(data=result_dataset, x="Beta Value", y="Avg Cost", hue= "Algorithm Name",gap=0.1)
+        plt.savefig('plot_analysis/cost_comparison/cost_comparison_beta.pdf')
+        plt.clf()
+        plt.close()
+        
     return 
 
 
@@ -333,7 +339,9 @@ def run_evalutation(beta, simulation_time=100, result_path='results/'):
 def main():
 
     #betas = [0.1,0.3,0.5,0.8]
-    betas = np.round(np.linspace(0,1,21),2)
+    betas = np.round(np.linspace(0.05,0.95,19),2)
+    
+    
     for beta in betas:
 
         fatigue_evolution_kesav,fatigue_evolution_adp, taskload_evolution_kesav, taskload_evolution_adp = run_evalutation(beta)
