@@ -162,11 +162,11 @@ class Utils(object):
     
         w_t: The taskload --> input type integer
     '''
-
+    ## taking max at the denominator for stability 
     def tau(self,w_t, F_t):
 
         tau = self.d_0 * (1 - self.beta * min((w_t / self.w_0),1) - (1 - self.beta) * F_t) / 2 + (
-            self.sigma_h**2 / (self.d_0 * (1 - self.beta * min((w_t / self.w_0),1) - (1 - self.beta) * F_t))
+            self.sigma_h**2 / max(self.d_0 * (1 - self.beta * min((w_t / self.w_0),1) - (1 - self.beta) * F_t),1e-10)
         ) * np.log((self.cfp - self.ctn) * self.prior[0] / ((self.cfn - self.ctp) * self.prior[1]))
 
         return tau
