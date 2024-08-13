@@ -124,18 +124,29 @@ def run_dp_parallel_beta(num_tasks_per_batch, mu, lamda, w_0, sigma_a, H0, H1, p
     path1 = "results/"
 
     if not os.path.exists(path1):
-        os.makedirs(path1)
+        try:
+            os.makedirs(path1, exist_ok=True)
+        except FileExistsError:
+            pass
+
 
     path2 = path1 + "num_tasks " + str(num_tasks_per_batch)
 
     if not os.path.exists(path2):
-        os.makedirs(path2)
+
+        try:
+            os.makedirs(path2, exist_ok=True)
+        except FileExistsError:
+            pass
 
     path3 = path2 + "/beta " + str(beta) + "/"
 
     if not os.path.exists(path3):
-        os.makedirs(path3)
-
+        
+        try:
+            os.makedirs(path3,exist_ok=True)	
+        except FileExistsError:
+            pass
     path_name = path3
 
     with open(path_name + "params.json", "w") as json_file:
@@ -163,7 +174,9 @@ def main():
 
     # defining the values of beta
     #betas = np.round(np.linspace(0,1,21),2)
-    betas = np.round(np.linspace(0.05,0.95,19),2)
+    #betas = np.round(np.linspace(0.05,0.95,19),2)
+    betas = np.round(np.linspace(0.1,0.9,9),1)
+    
     # defining the value of d_0
     d_0 = 3
     # defining the prior distribution of H_0 and H_1 respectively
