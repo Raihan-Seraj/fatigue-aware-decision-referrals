@@ -226,7 +226,8 @@ def main():
     #     run_dp_parallel_beta(num_tasks_per_batch, mu, lamda, w_0, sigma_a, H0, H1, prior, d_0, 0.5, sigma_h, ctp, ctn, cfp, cfn, cm, num_bins_fatigue, T, num_expectation_samples)
 
     with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
-        pool.starmap(run_dp_parallel_beta, inputs)
+    
+        pool.starmap(run_dp_parallel_beta, inputs,)
 
 
 if __name__ == "__main__":
