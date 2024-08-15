@@ -19,6 +19,7 @@ Args:
     ut: a utility object from the class Utility
 '''
 
+
 def approximate_dynamic_program(T, num_expectation_samples,ut):
 
     # number of possible fatigue states
@@ -27,6 +28,8 @@ def approximate_dynamic_program(T, num_expectation_samples,ut):
     # initializing the value of V_bar
     V_bar = {t: np.zeros((ut.num_bins_fatigue + 1)) for t in range(T + 2)}
 
+    mega_batch = [ut.get_auto_obs() for obs in range(num_expectation_samples)]
+    
     # looping over time
     for t in tqdm(range(T, -1, -1)):
 
@@ -47,9 +50,7 @@ def approximate_dynamic_program(T, num_expectation_samples,ut):
 
                     F_next_idx = ut.discretize_fatigue_state(F_next)
 
-                    batched_obs, batched_posterior_h0, batched_posterior_h1 = (
-                        ut.get_auto_obs()
-                    )
+                    batched_obs, batched_posterior_h0, batched_posterior_h1 = mega_batch[y]
 
                     cstar, _, _ = ut.compute_cstar(
                         F_t,
@@ -219,7 +220,7 @@ def main():
     # fatigue growth rate
     lamda = 0.05
 
-    result_path = "test/"
+    result_path = "check/"
 
     inputs = [
         (
@@ -227,11 +228,13 @@ def main():
         )
         for beta in betas
     ]
-
+    
+    # for beta in betas:
+    #     run_dp_parallel_beta(num_tasks_per_batch, mu, lamda, w_0, sigma_a, H0, H1, prior, d_0, beta, sigma_h, ctp, ctn, cfp, cfn, cm, num_bins_fatigue, T, num_expectation_samples,result_path)
     
     with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
     
-        pool.starmap(run_dp_parallel_beta, inputs,)
+        pool.starmap(run_dp_parallel_beta, inputs)
 
 
 if __name__ == "__main__":
