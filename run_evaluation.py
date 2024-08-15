@@ -423,7 +423,7 @@ def main():
     
     betas = [0.2,0.4,0.6,0.8]
 
-    result_path = "results/"
+    result_path = "test/"
     lamda_new=0.01
 
     inputs = [(beta,result_path,lamda_new) for beta in betas]

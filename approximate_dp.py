@@ -220,7 +220,7 @@ def main():
     # fatigue growth rate
     lamda = 0.05
 
-    result_path = "check/"
+    result_path = "final_results/"
 
     inputs = [
         (
