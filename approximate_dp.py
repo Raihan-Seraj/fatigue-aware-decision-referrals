@@ -5,6 +5,7 @@ from tqdm import tqdm
 import json
 import os
 import multiprocessing
+import pickle
 
 
 '''
@@ -74,7 +75,7 @@ def approximate_dynamic_program(T, num_expectation_samples,ut):
 '''
 Function that runs dynamic program for different values of beta
 '''
-def run_dp_parallel_beta(num_tasks_per_batch, mu, lamda, w_0, sigma_a, H0, H1, prior, d_0, beta, sigma_h, ctp, ctn, cfp, cfn, cm, num_bins_fatigue, T, num_expectation_samples):
+def run_dp_parallel_beta(num_tasks_per_batch, mu, lamda, w_0, sigma_a, H0, H1, prior, d_0, beta, sigma_h, ctp, ctn, cfp, cfn, cm, num_bins_fatigue, T, num_expectation_samples,result_path):
     
     ut = Utils(num_tasks_per_batch, mu, lamda, w_0, sigma_a, H0, H1, prior, d_0, beta, sigma_h, ctp, ctn, cfp, cfn, cm, num_bins_fatigue)
 
@@ -121,7 +122,7 @@ def run_dp_parallel_beta(num_tasks_per_batch, mu, lamda, w_0, sigma_a, H0, H1, p
 
     }
 
-    path1 = "results/"
+    path1 = result_path
 
     if not os.path.exists(path1):
         try:
@@ -157,6 +158,8 @@ def run_dp_parallel_beta(num_tasks_per_batch, mu, lamda, w_0, sigma_a, H0, H1, p
     )
 
     V_final = V_func[0]
+    with open(path_name + 'V_func.pkl','wb') as file:
+        pickle.dump(V_func,file)
     np.save(path_name + "V_bar.npy", V_final)
 
     return
@@ -175,8 +178,10 @@ def main():
     # defining the values of beta
     #betas = np.round(np.linspace(0,1,21),2)
     #betas = np.round(np.linspace(0.05,0.95,19),2)
-    betas = np.round(np.linspace(0.1,0.9,9),1)
+   #betas = np.round(np.linspace(0.1,0.9,9),1)
     
+    betas=[0.2,0.4,0.6,0.8]
+
     # defining the value of d_0
     d_0 = 3
     # defining the prior distribution of H_0 and H_1 respectively
@@ -200,7 +205,7 @@ def main():
 
     # number of bins used for the discretization of fatigue 
     num_bins_fatigue = 10
-    num_expectation_samples = 15
+    num_expectation_samples = 100
 
     cfp = np.random.uniform(8, 12)
     cfn = np.random.uniform(8, 12)
@@ -214,17 +219,16 @@ def main():
     # fatigue growth rate
     lamda = 0.05
 
+    result_path = "test/"
+
     inputs = [
         (
-            num_tasks_per_batch, mu, lamda, w_0, sigma_a, H0, H1, prior, d_0, beta, sigma_h, ctp, ctn, cfp, cfn, cm, num_bins_fatigue, T, num_expectation_samples
+            num_tasks_per_batch, mu, lamda, w_0, sigma_a, H0, H1, prior, d_0, beta, sigma_h, ctp, ctn, cfp, cfn, cm, num_bins_fatigue, T, num_expectation_samples,result_path
         )
         for beta in betas
     ]
 
-    # for inpt in inputs:
-        
-    #     run_dp_parallel_beta(num_tasks_per_batch, mu, lamda, w_0, sigma_a, H0, H1, prior, d_0, 0.5, sigma_h, ctp, ctn, cfp, cfn, cm, num_bins_fatigue, T, num_expectation_samples)
-
+    
     with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
     
         pool.starmap(run_dp_parallel_beta, inputs,)

@@ -113,7 +113,7 @@ def compute_adp_solution(
     return wl_dp, defrred_idx_dp
 
 
-def compute_performance(betas,result_path, simulation_time=100, num_runs=10):
+def compute_performance(betas,result_path,lamda_new, simulation_time=100, num_runs=10):
 
     result_dataset = pd.DataFrame(columns=['Algorithm Name','Beta Value','Avg Cost'])
 
@@ -161,7 +161,7 @@ def compute_performance(betas,result_path, simulation_time=100, num_runs=10):
         ut = Utils(num_tasks_per_batch, mu, lamda, w_0, sigma_a, H0, H1, prior, d_0, beta, sigma_h, ctp, ctn, cfp, cfn, cm, num_bins_fatigue)
         
         #initializing the utility with a different value of lambda (different than the one used for training)
-        ut_new = Utils(num_tasks_per_batch, mu, 0.01, w_0, sigma_a, H0, H1, prior, d_0, beta, sigma_h, ctp, ctn, cfp, cfn, cm, num_bins_fatigue)
+        ut_new = Utils(num_tasks_per_batch, mu, lamda_new, w_0, sigma_a, H0, H1, prior, d_0, beta, sigma_h, ctp, ctn, cfp, cfn, cm, num_bins_fatigue)
 
 
         V_bar = np.load(result_path+'num_tasks 20/beta '+str(beta)+'/V_bar.npy')
@@ -270,7 +270,7 @@ def compute_performance(betas,result_path, simulation_time=100, num_runs=10):
 
 
 
-def run_evalutation(beta, result_path, simulation_time=100):
+def run_evalutation(beta, result_path,lamda_new, simulation_time=100):
 
     ## loading the parameters
 
@@ -313,7 +313,7 @@ def run_evalutation(beta, result_path, simulation_time=100):
 
     ut = Utils(num_tasks_per_batch, mu, lamda, w_0, sigma_a, H0, H1, prior, d_0, beta, sigma_h, ctp, ctn, cfp, cfn, cm, num_bins_fatigue)
 
-    ut_new = Utils(num_tasks_per_batch, mu, 0.01, w_0, sigma_a, H0, H1, prior, d_0, beta, sigma_h, ctp, ctn, cfp, cfn, cm, num_bins_fatigue)
+    ut_new = Utils(num_tasks_per_batch, mu, lamda_new, w_0, sigma_a, H0, H1, prior, d_0, beta, sigma_h, ctp, ctn, cfp, cfn, cm, num_bins_fatigue)
 
 
     V_bar = np.load(result_path+'num_tasks 20/beta '+str(beta)+'/V_bar.npy')
@@ -371,9 +371,9 @@ def run_evalutation(beta, result_path, simulation_time=100):
 
 
 
-def run_perf_eval(beta, result_path):
+def run_perf_eval(beta, result_path,lamda_new):
     
-    fatigue_evolution_kesav,fatigue_evolution_adp,fatigue_evolution_adp_new, taskload_evolution_kesav, taskload_evolution_adp, taskload_evolution_adp_new = run_evalutation(beta,result_path)
+    fatigue_evolution_kesav,fatigue_evolution_adp,fatigue_evolution_adp_new, taskload_evolution_kesav, taskload_evolution_adp, taskload_evolution_adp_new = run_evalutation(beta,result_path,lamda_new)
 
         ## plotting the level of fatigue 
 
@@ -424,8 +424,9 @@ def main():
     betas = [0.2,0.4,0.6,0.8]
 
     result_path = "results/"
+    lamda_new=0.01
 
-    inputs = [(beta,result_path) for beta in betas]
+    inputs = [(beta,result_path,lamda_new) for beta in betas]
     
     
     with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
@@ -433,7 +434,7 @@ def main():
 
    
     
-    compute_performance(betas, result_path)
+    compute_performance(betas, result_path,lamda_new)
 
         
 
