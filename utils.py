@@ -303,7 +303,7 @@ class Utils(object):
         human_cost_per_batch = sum(human_cost_all_deferred_tasks)
         total_per_step_cost = auto_cost_per_batch + deferred_cost + human_cost_per_batch
 
-        return total_per_step_cost
+        return auto_cost_per_batch, human_cost_per_batch, deferred_cost
 
 
     #####################################################################################################################################
