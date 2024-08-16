@@ -385,7 +385,23 @@ def run_perf_eval(beta, result_path,lamda_new):
         except FileExistsError:
             pass
     
+    path2 = path1+'beta '+str(beta)+'/'
+
+    if not os.path.exists(path2):
+        try:
+            os.makedirs(path2,exist_ok=True)
+        
+        except FileExistsError:
+            pass
     
+
+    np.save(path2+'fatigue_k.npy',fatigue_evolution_kesav)
+    np.save(path2 +'fatigue_adp.npy',fatigue_evolution_adp)
+    np.save(path2 +'fatigue_adp_new.npy',fatigue_evolution_adp_new)
+    
+    np.save(path2 +'taskload_k.npy',taskload_evolution_kesav)
+    np.save(path2 +'taskload_adp.npy',taskload_evolution_adp)
+    np.save(path2 +'taskload_adp_new.npy',taskload_evolution_adp_new)
 
     plt.plot(fatigue_evolution_adp,label='Approx dynamic program',color='orange')
     plt.plot(fatigue_evolution_adp_new,label='Approx dynamic program - corr',color='red')
@@ -394,7 +410,7 @@ def run_perf_eval(beta, result_path,lamda_new):
     plt.xlabel('Time')
     plt.ylabel('Fatigue Level')
     plt.legend()
-    plt.savefig(path1+'beta_'+str(beta)+'_fatigue.pdf')
+    plt.savefig(path2+'beta_'+str(beta)+'_fatigue.pdf')
 
     plt.clf()
     plt.close()
@@ -407,7 +423,7 @@ def run_perf_eval(beta, result_path,lamda_new):
     plt.xlabel('Time')
     plt.ylabel('Workload level')
     plt.legend()
-    plt.savefig(path1+'beta_'+str(beta)+'_workload.pdf')
+    plt.savefig(path2+'beta_'+str(beta)+'_workload.pdf')
 
     plt.clf()
     plt.close()
