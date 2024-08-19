@@ -113,10 +113,14 @@ def compute_adp_solution(
     return wl_dp, defrred_idx_dp
 
 
-def compute_performance(betas,result_path,lamda_new, simulation_time=100, num_runs=10):
+def compute_performance(betas,result_path,lamda_new, simulation_time, num_runs=100):
 
-    result_dataset = pd.DataFrame(columns=['Algorithm Name','Beta Value','Avg Cost'])
+    result_dataset = pd.DataFrame(columns=['Algorithm Name','Beta Value','Automation Cost', 'Human Cost','Deferred Cost'])
 
+    performance_data = pd.DataFrame(columns=['Beta', 'ADP Human Cost','ADP Automation Cost','ADP Total Cost',
+                                             'K Algorithm Human Cost', 'K Algorithm Automation Cost','K Algorithm Total Cost'])
+                                           
+                                           
     
     for beta in betas:
 
@@ -166,11 +170,18 @@ def compute_performance(betas,result_path,lamda_new, simulation_time=100, num_ru
 
         V_bar = np.load(result_path+'num_tasks 20/beta '+str(beta)+'/V_bar.npy')
 
-        all_perf_k = np.zeros(num_runs)
+        all_auto_cost_k = np.zeros(num_runs)
+        all_human_cost_k = np.zeros(num_runs)
+        all_deferred_cost_k = np.zeros(num_runs)
 
-        all_perf_adp = np.zeros(num_runs)
-
-        all_perf_adp_new = np.zeros(num_runs)
+        all_auto_cost_adp = np.zeros(num_runs)
+        all_human_cost_adp = np.zeros(num_runs)
+        all_deferred_cost_adp = np.zeros(num_runs)
+        
+        
+        all_auto_cost_adp_new = np.zeros(num_runs)
+        all_human_cost_adp_new = np.zeros(num_runs)
+        all_deferred_cost_adp_new = np.zeros(num_runs)
 
         
 
@@ -184,27 +195,49 @@ def compute_performance(betas,result_path,lamda_new, simulation_time=100, num_ru
 
             F_adp_new=0
 
-            cost_adp = 0
-            cost_k = 0
-            cost_adp_new=0
+            auto_cost_adp = 0
+            human_cost_adp = 0
+            deferred_cost_adp = 0
+
+            auto_cost_k = 0
+            human_cost_k=0
+            deferred_cost_k=0
+
+            auto_cost_adp_new=0
+            human_cost_adp_new=0
+            deferred_cost_adp_new = 0
+
+            mega_batch = [ut.get_auto_obs() for _ in range(simulation_time)]
             for t in range(simulation_time):
 
 
-                batched_obs, batched_posterior_h0, batched_posterior_h1=ut.get_auto_obs()
+                batched_obs, batched_posterior_h0, batched_posterior_h1=mega_batch[t]
 
                 wl_k, deferred_idx_k = compute_kesavs_algo(batched_posterior_h0, batched_posterior_h1, F_k, ut)
 
                 wl_adp, deferred_idx_adp = compute_adp_solution(batched_posterior_h0,batched_posterior_h1,F_adp, V_bar,ut)
 
                 wl_adp_new, deferred_idx_adp_new = compute_adp_solution(batched_posterior_h0,batched_posterior_h1,F_adp_new, V_bar,ut_new)
-
                 
-                cost_adp += ut.per_step_cost(F_adp,batched_posterior_h1,deferred_idx_adp)
+                
+                a_cost_adp, h_cost_adp,def_cost_adp = ut.per_step_cost(F_adp,batched_posterior_h1,deferred_idx_adp)
 
-                cost_k += ut.per_step_cost(F_k,batched_posterior_h1,deferred_idx_k)
+                a_cost_k, h_cost_k, def_cost_k = ut.per_step_cost(F_k,batched_posterior_h1,deferred_idx_k)
 
-                cost_adp_new += ut_new.per_step_cost(F_adp_new,batched_posterior_h1,deferred_idx_adp)
+                a_cost_adp_new, h_cost_adp_new, def_cost_adp_new = ut_new.per_step_cost(F_adp_new,batched_posterior_h1,deferred_idx_adp_new)
+                
 
+                auto_cost_adp+=a_cost_adp
+                human_cost_adp+=h_cost_adp
+                deferred_cost_adp += def_cost_adp
+
+                auto_cost_k += a_cost_k
+                human_cost_k += h_cost_k
+                deferred_cost_k += def_cost_k
+
+                auto_cost_adp_new+=a_cost_adp_new
+                human_cost_adp_new += h_cost_adp_new
+                deferred_cost_adp_new += def_cost_adp_new
 
 
                 #get the next fatigue state for kesav
@@ -216,16 +249,23 @@ def compute_performance(betas,result_path,lamda_new, simulation_time=100, num_ru
 
                 F_adp_new = ut_new.get_fatigue(F_adp_new,wl_adp_new)
 
-            perf_adp = cost_adp
-            all_perf_adp[run]=perf_adp
+            
+            all_auto_cost_adp[run]= auto_cost_adp
+            all_human_cost_adp[run] = human_cost_adp
+            all_deferred_cost_adp[run] = deferred_cost_adp
 
-            perf_k = cost_k
-            all_perf_k[run]=perf_k
+            all_auto_cost_k[run]= auto_cost_k
+            all_human_cost_k[run] = human_cost_k
+            all_deferred_cost_k[run] = deferred_cost_k
 
-            perf_adp_new = cost_adp_new
-            all_perf_adp_new[run] = perf_adp_new
 
-            new_rows = pd.DataFrame([['ADP', beta, perf_adp],['ADP-corr', beta, perf_adp_new],['K-Algorithm',beta,perf_k]], columns=result_dataset.columns)
+            all_auto_cost_adp_new[run]= auto_cost_adp_new
+            all_human_cost_adp_new[run] = human_cost_adp_new
+            all_deferred_cost_adp_new[run] = deferred_cost_adp_new
+            
+            #result_dataset = pd.DataFrame(columns=['Algorithm Name','Beta Value','Automation Cost', 'Human Cost','Deferred Cost'])
+            
+            new_rows = pd.DataFrame([['ADP', beta, auto_cost_adp, human_cost_adp, deferred_cost_adp],['ADP-Lambda=0.01', beta, auto_cost_adp_new, human_cost_adp_new, deferred_cost_adp_new],['K-Algorithm',beta, auto_cost_k, human_cost_k, deferred_cost_k]], columns=result_dataset.columns)
             #new_row2 = pd.DataFrame([['K-Algorithm', beta, avg_cost_k]], columns=result_dataset.columns)
 
             result_dataset = pd.concat([result_dataset,new_rows],ignore_index=True)
@@ -245,15 +285,59 @@ def compute_performance(betas,result_path,lamda_new, simulation_time=100, num_ru
         if not os.path.exists(path3):
             os.makedirs(path3)
 
-        np.save(path3+'all_perf_adp.npy',all_perf_adp)
+        
+    
+        
+        np.save(path3+'all_auto_cost_adp.npy',all_auto_cost_adp)
 
-        np.save(path3+'all_perf_adp_new.npy',all_perf_adp_new)
+        np.save(path3+'all_human_cost_adp.npy',all_human_cost_adp)
 
-        np.save(path3+'all_perf_k.npy',all_perf_k)
+        np.save(path3+'all_deferred_cost_adp.npy',all_deferred_cost_adp)
+
+        
+        np.save(path3+'all_auto_cost_adp_new.npy',all_auto_cost_adp_new)
+
+        np.save(path3+'all_human_cost_adp_new.npy',all_human_cost_adp_new)
+
+        np.save(path3+'all_deferred_cost_adp_new.npy',all_deferred_cost_adp_new)
+
+
+        np.save(path3+'all_auto_cost_k.npy',all_auto_cost_k)
+
+        np.save(path3+'all_human_cost_k.npy',all_human_cost_k)
+
+        np.save(path3+'all_deferred_cost_k.npy',all_deferred_cost_k)
+
+
         
         result_dataset.to_csv(result_path+'plot_analysis/plot_data.csv')
+        
+        ##preparing the table###
+        
 
-        sns.boxplot(data=result_dataset, x="Beta Value", y="Avg Cost", hue= "Algorithm Name",gap=0.1)
+        mean_human_adp = np.mean(all_human_cost_adp)
+        std_human_adp = np.std(all_human_cost_adp)
+        mean_auto_adp = np.mean(all_auto_cost_adp)
+        std_auto_adp = np.std(all_auto_cost_adp)
+        mean_total_cost_adp = np.mean(all_human_cost_adp+all_auto_cost_adp)
+        std_total_cost_adp = np.std(all_human_cost_adp+all_auto_cost_adp)
+
+        mean_human_k = np.mean(all_human_cost_k)
+        std_human_k = np.std(all_human_cost_k)
+        mean_auto_k = np.mean(all_auto_cost_k)
+        std_auto_k = np.std(all_auto_cost_k)
+        mean_total_cost_k = np.mean(all_auto_cost_k + all_human_cost_k)
+        std_total_cost_k = np.std(all_auto_cost_k + all_human_cost_k)
+
+        nrow = pd.DataFrame([[str(beta),str(mean_human_adp)+'+-'+str(std_human_adp), str(mean_auto_adp)+'+-'+str(std_auto_adp),
+                              str(mean_total_cost_adp)+'+-'+str(std_total_cost_adp), str(mean_human_k)+'+-'+str(std_human_k),
+                              str(mean_auto_k)+'+-'+str(std_auto_k), str(mean_total_cost_k)+'+-'+str(std_total_cost_k)]],columns=performance_data.columns)
+        
+        performance_data = pd.concat([performance_data,nrow],ignore_index=True)
+
+        performance_data.to_csv(result_path+'performance_data.csv')
+        ##############################################################################################################
+        sns.boxplot(data=result_dataset, x="Beta Value", y="Human Cost", hue= "Algorithm Name",gap=0.1)
         plt.savefig(result_path+'plot_analysis/cost_comparison/cost_comparison_beta.pdf')
         plt.clf()
         plt.close()
@@ -270,7 +354,7 @@ def compute_performance(betas,result_path,lamda_new, simulation_time=100, num_ru
 
 
 
-def run_evalutation(beta, result_path,lamda_new, simulation_time=100):
+def run_evalutation(beta, result_path,lamda_new, simulation_time):
 
     ## loading the parameters
 
@@ -336,13 +420,15 @@ def run_evalutation(beta, result_path,lamda_new, simulation_time=100):
     taskload_evolution_adp =[]
     taskload_evolution_adp_new =[]
 
+    mega_obs = [ut.get_auto_obs for _ in range(simulation_time)]
+
     for t in tqdm(range(simulation_time)):
 
         fatigue_evolution_kesav.append(F_k)
         fatigue_evolution_adp.append(F_adp)
         fatigue_evolution_adp_new.append(F_adp_new)
 
-        batched_obs, batched_posterior_h0, batched_posterior_h1=ut.get_auto_obs()
+        batched_obs, batched_posterior_h0, batched_posterior_h1= mega_obs[t]
 
         wl_k, deferred_idx_k = compute_kesavs_algo(batched_posterior_h0, batched_posterior_h1, F_k, ut)
 
@@ -371,9 +457,9 @@ def run_evalutation(beta, result_path,lamda_new, simulation_time=100):
 
 
 
-def run_perf_eval(beta, result_path,lamda_new):
+def run_perf_eval(beta, result_path,lamda_new,simulation_time):
     
-    fatigue_evolution_kesav,fatigue_evolution_adp,fatigue_evolution_adp_new, taskload_evolution_kesav, taskload_evolution_adp, taskload_evolution_adp_new = run_evalutation(beta,result_path,lamda_new)
+    fatigue_evolution_kesav,fatigue_evolution_adp,fatigue_evolution_adp_new, taskload_evolution_kesav, taskload_evolution_adp, taskload_evolution_adp_new = run_evalutation(beta,result_path,lamda_new,simulation_time)
 
         ## plotting the level of fatigue 
 
@@ -416,9 +502,9 @@ def run_perf_eval(beta, result_path,lamda_new):
     plt.close()
 
 
-    plt.plot(taskload_evolution_adp,label='Approx dynamic program',color='orange')
-    plt.plot(taskload_evolution_adp_new,label='Approx dynamic program-Corr',color='red')
-    plt.plot(taskload_evolution_kesav,label='Kesav', color='black')
+    plt.step(np.arange(1,simulation_time+1,1),taskload_evolution_adp,label='Approx dynamic program',color='orange',where='post')
+    plt.step(np.arange(1,simulation_time+1,1),taskload_evolution_adp_new,label='Approx dynamic program-Corr',color='red',where='post')
+    plt.step(np.arange(1,simulation_time+1,1),taskload_evolution_kesav,label='Kesav', color='black',where='post')
 
     plt.xlabel('Time')
     plt.ylabel('Workload level')
@@ -437,12 +523,13 @@ def main():
 
     #betas = np.round(np.linspace(0.1,0.9,9),1)
     
-    betas = [0.2,0.4,0.6,0.8]
+    betas = [0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1]
 
-    result_path = "test/"
+    result_path = "results/"
+    simulation_time = 20
     lamda_new=0.01
 
-    inputs = [(beta,result_path,lamda_new) for beta in betas]
+    inputs = [(beta,result_path,lamda_new,simulation_time) for beta in betas]
     
     
     with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
@@ -450,7 +537,7 @@ def main():
 
    
     
-    compute_performance(betas, result_path,lamda_new)
+    compute_performance(betas, result_path,lamda_new,simulation_time)
 
         
 
