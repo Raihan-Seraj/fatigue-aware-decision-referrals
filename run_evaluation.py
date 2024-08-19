@@ -490,7 +490,7 @@ def run_perf_eval(beta, result_path,lamda_new,simulation_time):
     np.save(path2 +'taskload_adp_new.npy',taskload_evolution_adp_new)
 
     plt.plot(fatigue_evolution_adp,label='Approx dynamic program',color='orange')
-    plt.plot(fatigue_evolution_adp_new,label='Approx dynamic program - corr',color='red')
+    #plt.plot(fatigue_evolution_adp_new,label='Approx dynamic program - corr',color='red')
     plt.plot(fatigue_evolution_kesav,label='Kesav', color='black')
 
     plt.xlabel('Time')
@@ -503,7 +503,7 @@ def run_perf_eval(beta, result_path,lamda_new,simulation_time):
 
 
     plt.step(np.arange(1,simulation_time+1,1),taskload_evolution_adp,label='Approx dynamic program',color='orange',where='post')
-    plt.step(np.arange(1,simulation_time+1,1),taskload_evolution_adp_new,label='Approx dynamic program-Corr',color='red',where='post')
+    #plt.step(np.arange(1,simulation_time+1,1),taskload_evolution_adp_new,label='Approx dynamic program-Corr',color='red',where='post')
     plt.step(np.arange(1,simulation_time+1,1),taskload_evolution_kesav,label='Kesav', color='black',where='post')
 
     plt.xlabel('Time')
