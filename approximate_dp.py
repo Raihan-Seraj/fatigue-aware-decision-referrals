@@ -176,15 +176,10 @@ The main function
 '''
 def main():
 
-    # defining the values of beta
-    #betas = np.round(np.linspace(0,1,21),2)
-    #betas = np.round(np.linspace(0.05,0.95,19),2)
-   #betas = np.round(np.linspace(0.1,0.9,9),1)
-    
-    betas=[0.2,0.4,0.6,0.8]
+    betas=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
 
     # defining the value of d_0
-    d_0 = 3
+    d_0 = 10
     # defining the prior distribution of H_0 and H_1 respectively
     prior = [0.8, 0.2]
 
@@ -195,9 +190,8 @@ def main():
     # the number of tasks per batch
     num_tasks_per_batch=20
     # parameters used
-    sigma_a = np.random.uniform(1.5, 2)
-    sigma_h = np.random.uniform(1, 1.5)
-
+    sigma_a = 2
+    sigma_h = 1
     # total time for which the system will run 
     T = 20
 
@@ -208,11 +202,11 @@ def main():
     num_bins_fatigue = 10
     num_expectation_samples = 100
 
-    cfp = np.random.uniform(8, 12)
-    cfn = np.random.uniform(8, 12)
-    ctp = np.random.uniform(0, 2)
-    ctn = np.random.uniform(0, 2)
-    cm = np.random.uniform(0, 0.5)
+    cfp = 10#np.random.uniform(8, 12)
+    cfn = 10#np.random.uniform(8, 12)
+    ctp = 1.5#np.random.uniform(0, 2)
+    ctn = 1.5#np.random.uniform(0, 2)
+    cm = 0
 
     # fatigue recovery rate
     mu = 0.03
@@ -220,7 +214,7 @@ def main():
     # fatigue growth rate
     lamda = 0.05
 
-    result_path = "final_results/"
+    result_path = "results/"
 
     inputs = [
         (
