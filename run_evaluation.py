@@ -531,9 +531,9 @@ def run_perf_eval(beta, result_path,lamda_new,simulation_time):
 
 def main():
 
-    #betas = np.round(np.linspace(0.1,0.9,9),1)
+  
     
-    betas = [0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1]
+    betas = [0.1,0.3,0.5,0.7,0.9]
 
     result_path = "results/"
     simulation_time = 20
