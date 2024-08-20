@@ -117,8 +117,8 @@ def compute_performance(betas,result_path,lamda_new, simulation_time, num_runs=1
 
     result_dataset = pd.DataFrame(columns=['Algorithm Name','Beta Value','Automation Cost', 'Human Cost','Deferred Cost'])
 
-    performance_data = pd.DataFrame(columns=['Beta', 'ADP Human Cost','ADP Automation Cost','ADP Total Cost',
-                                             'K Algorithm Human Cost', 'K Algorithm Automation Cost','K Algorithm Total Cost'])
+    performance_data = pd.DataFrame(columns=['Beta', 'ADP Human Cost','ADP Automation Cost','ADP Deferred Cost','ADP Total Cost',
+                                             'K Algorithm Human Cost', 'K Algorithm Automation Cost','K Deferred Cost','K Algorithm Total Cost'])
                                            
                                            
     
@@ -167,6 +167,8 @@ def compute_performance(betas,result_path,lamda_new, simulation_time, num_runs=1
         #initializing the utility with a different value of lambda (different than the one used for training)
         ut_new = Utils(num_tasks_per_batch, mu, lamda_new, w_0, sigma_a, H0, H1, prior, d_0, beta, sigma_h, ctp, ctn, cfp, cfn, cm, num_bins_fatigue)
 
+        ut_k = Utils(num_tasks_per_batch, mu, lamda_new, w_0, sigma_a, H0, H1, prior, d_0, beta, sigma_h, ctp, ctn, cfp, cfn, 0.3, num_bins_fatigue)
+
 
         V_bar = np.load(result_path+'num_tasks 20/beta '+str(beta)+'/V_bar.npy')
 
@@ -213,7 +215,7 @@ def compute_performance(betas,result_path,lamda_new, simulation_time, num_runs=1
 
                 batched_obs, batched_posterior_h0, batched_posterior_h1=mega_batch[t]
 
-                wl_k, deferred_idx_k = compute_kesavs_algo(batched_posterior_h0, batched_posterior_h1, F_k, ut)
+                wl_k, deferred_idx_k = compute_kesavs_algo(batched_posterior_h0, batched_posterior_h1, F_k, ut_k)
 
                 wl_adp, deferred_idx_adp = compute_adp_solution(batched_posterior_h0,batched_posterior_h1,F_adp, V_bar,ut)
 
@@ -222,7 +224,7 @@ def compute_performance(betas,result_path,lamda_new, simulation_time, num_runs=1
                 
                 a_cost_adp, h_cost_adp,def_cost_adp = ut.per_step_cost(F_adp,batched_posterior_h1,deferred_idx_adp)
 
-                a_cost_k, h_cost_k, def_cost_k = ut.per_step_cost(F_k,batched_posterior_h1,deferred_idx_k)
+                a_cost_k, h_cost_k, def_cost_k = ut_k.per_step_cost(F_k,batched_posterior_h1,deferred_idx_k)
 
                 a_cost_adp_new, h_cost_adp_new, def_cost_adp_new = ut_new.per_step_cost(F_adp_new,batched_posterior_h1,deferred_idx_adp_new)
                 
@@ -241,7 +243,7 @@ def compute_performance(betas,result_path,lamda_new, simulation_time, num_runs=1
 
 
                 #get the next fatigue state for kesav
-                F_k = ut.get_fatigue(F_k, wl_k)
+                F_k = ut_k.get_fatigue(F_k, wl_k)
 
                 #get the next fatigue state for adp
 
@@ -319,19 +321,25 @@ def compute_performance(betas,result_path,lamda_new, simulation_time, num_runs=1
         std_human_adp = np.std(all_human_cost_adp)
         mean_auto_adp = np.mean(all_auto_cost_adp)
         std_auto_adp = np.std(all_auto_cost_adp)
-        mean_total_cost_adp = np.mean(all_human_cost_adp+all_auto_cost_adp)
-        std_total_cost_adp = np.std(all_human_cost_adp+all_auto_cost_adp)
+        mean_deferred_adp = np.mean(all_deferred_cost_adp)
+        std_deferred_adp  = np.std(all_deferred_cost_adp)
+
+        mean_total_cost_adp = np.mean(all_human_cost_adp+all_auto_cost_adp +all_deferred_cost_adp)
+        std_total_cost_adp = np.std(all_human_cost_adp+all_auto_cost_adp + all_deferred_cost_adp)
 
         mean_human_k = np.mean(all_human_cost_k)
         std_human_k = np.std(all_human_cost_k)
         mean_auto_k = np.mean(all_auto_cost_k)
         std_auto_k = np.std(all_auto_cost_k)
-        mean_total_cost_k = np.mean(all_auto_cost_k + all_human_cost_k)
-        std_total_cost_k = np.std(all_auto_cost_k + all_human_cost_k)
+        mean_deferred_k = np.mean(all_deferred_cost_k)
+        std_deferred_k = np.std(all_deferred_cost_k)
 
-        nrow = pd.DataFrame([[str(beta),str(mean_human_adp)+'+-'+str(std_human_adp), str(mean_auto_adp)+'+-'+str(std_auto_adp),
+        mean_total_cost_k = np.mean(all_auto_cost_k + all_human_cost_k + all_deferred_cost_k)
+        std_total_cost_k = np.std(all_auto_cost_k + all_human_cost_k + all_deferred_cost_k)
+
+        nrow = pd.DataFrame([[str(beta),str(mean_human_adp)+'+-'+str(std_human_adp), str(mean_auto_adp)+'+-'+str(std_auto_adp),str(mean_deferred_adp)+'+-'+str(std_deferred_adp),
                               str(mean_total_cost_adp)+'+-'+str(std_total_cost_adp), str(mean_human_k)+'+-'+str(std_human_k),
-                              str(mean_auto_k)+'+-'+str(std_auto_k), str(mean_total_cost_k)+'+-'+str(std_total_cost_k)]],columns=performance_data.columns)
+                              str(mean_auto_k)+'+-'+str(std_auto_k),str(mean_deferred_k)+'+-'+str(std_deferred_k), str(mean_total_cost_k)+'+-'+str(std_total_cost_k)]],columns=performance_data.columns)
         
         performance_data = pd.concat([performance_data,nrow],ignore_index=True)
 
@@ -397,6 +405,8 @@ def run_evalutation(beta, result_path,lamda_new, simulation_time):
 
     ut = Utils(num_tasks_per_batch, mu, lamda, w_0, sigma_a, H0, H1, prior, d_0, beta, sigma_h, ctp, ctn, cfp, cfn, cm, num_bins_fatigue)
 
+    ut_k = Utils(num_tasks_per_batch, mu, lamda, w_0, sigma_a, H0, H1, prior, d_0, beta, sigma_h, ctp, ctn, cfp, cfn, 0.3, num_bins_fatigue)
+
     ut_new = Utils(num_tasks_per_batch, mu, lamda_new, w_0, sigma_a, H0, H1, prior, d_0, beta, sigma_h, ctp, ctn, cfp, cfn, cm, num_bins_fatigue)
 
 
@@ -420,8 +430,8 @@ def run_evalutation(beta, result_path,lamda_new, simulation_time):
     taskload_evolution_adp =[]
     taskload_evolution_adp_new =[]
 
-    mega_obs = [ut.get_auto_obs for _ in range(simulation_time)]
-
+    mega_obs = [ut.get_auto_obs() for _ in range(simulation_time)]
+    
     for t in tqdm(range(simulation_time)):
 
         fatigue_evolution_kesav.append(F_k)
@@ -430,7 +440,7 @@ def run_evalutation(beta, result_path,lamda_new, simulation_time):
 
         batched_obs, batched_posterior_h0, batched_posterior_h1= mega_obs[t]
 
-        wl_k, deferred_idx_k = compute_kesavs_algo(batched_posterior_h0, batched_posterior_h1, F_k, ut)
+        wl_k, deferred_idx_k = compute_kesavs_algo(batched_posterior_h0, batched_posterior_h1, F_k, ut_k)
 
         wl_adp, deferred_idx_adp = compute_adp_solution(batched_posterior_h0,batched_posterior_h1,F_adp, V_bar,ut)
 
@@ -440,7 +450,7 @@ def run_evalutation(beta, result_path,lamda_new, simulation_time):
 
 
         #get the next fatigue state for kesav
-        F_k = ut.get_fatigue(F_k, wl_k)
+        F_k = ut_k.get_fatigue(F_k, wl_k)
 
         #get the next fatigue state for adp
 
@@ -531,7 +541,9 @@ def main():
 
     inputs = [(beta,result_path,lamda_new,simulation_time) for beta in betas]
     
-    
+    # for beta in betas:
+    #     run_perf_eval(beta, result_path,lamda_new,simulation_time)
+
     with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
         pool.starmap(run_perf_eval, inputs)
 
