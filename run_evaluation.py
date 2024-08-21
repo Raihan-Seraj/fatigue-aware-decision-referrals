@@ -8,6 +8,7 @@ from utils import Utils
 import seaborn as sns
 import matplotlib
 import multiprocessing
+import pickle
 matplotlib.use('Agg')
 
 
@@ -167,7 +168,7 @@ def compute_performance(betas,result_path,lamda_new, simulation_time, num_runs=1
         #initializing the utility with a different value of lambda (different than the one used for training)
         ut_new = Utils(num_tasks_per_batch, mu, lamda_new, w_0, sigma_a, H0, H1, prior, d_0, beta, sigma_h, ctp, ctn, cfp, cfn, cm, num_bins_fatigue)
 
-        ut_k = Utils(num_tasks_per_batch, mu, lamda_new, w_0, sigma_a, H0, H1, prior, d_0, beta, sigma_h, ctp, ctn, cfp, cfn, 0.3, num_bins_fatigue)
+        ut_k = Utils(num_tasks_per_batch, mu, lamda_new, w_0, sigma_a, H0, H1, prior, d_0, beta, sigma_h, ctp, ctn, cfp, cfn,0, num_bins_fatigue)
 
 
         V_bar = np.load(result_path+'num_tasks 20/beta '+str(beta)+'/V_bar.npy')
@@ -185,7 +186,8 @@ def compute_performance(betas,result_path,lamda_new, simulation_time, num_runs=1
         all_human_cost_adp_new = np.zeros(num_runs)
         all_deferred_cost_adp_new = np.zeros(num_runs)
 
-        
+        all_human_wl_adp = {}
+        all_human_wl_k={}
 
         for run in tqdm(range(num_runs)):
         
@@ -210,6 +212,8 @@ def compute_performance(betas,result_path,lamda_new, simulation_time, num_runs=1
             deferred_cost_adp_new = 0
 
             mega_batch = [ut.get_auto_obs() for _ in range(simulation_time)]
+            hum_wl_adp = np.zeros(simulation_time)
+            hum_wl_k = np.zeros(simulation_time)
             for t in range(simulation_time):
 
 
@@ -220,6 +224,9 @@ def compute_performance(betas,result_path,lamda_new, simulation_time, num_runs=1
                 wl_adp, deferred_idx_adp = compute_adp_solution(batched_posterior_h0,batched_posterior_h1,F_adp, V_bar,ut)
 
                 wl_adp_new, deferred_idx_adp_new = compute_adp_solution(batched_posterior_h0,batched_posterior_h1,F_adp_new, V_bar,ut_new)
+
+                hum_wl_adp[t]=wl_adp
+                hum_wl_k[t]=wl_k
                 
                 
                 a_cost_adp, h_cost_adp,def_cost_adp = ut.per_step_cost(F_adp,batched_posterior_h1,deferred_idx_adp)
@@ -251,7 +258,10 @@ def compute_performance(betas,result_path,lamda_new, simulation_time, num_runs=1
 
                 F_adp_new = ut_new.get_fatigue(F_adp_new,wl_adp_new)
 
-            
+            all_human_wl_adp['Run-'+str(run+1)]=hum_wl_adp
+            all_human_wl_k['Run-'+str(run+1)]=hum_wl_k
+
+
             all_auto_cost_adp[run]= auto_cost_adp
             all_human_cost_adp[run] = human_cost_adp
             all_deferred_cost_adp[run] = deferred_cost_adp
@@ -288,6 +298,12 @@ def compute_performance(betas,result_path,lamda_new, simulation_time, num_runs=1
             os.makedirs(path3)
 
         
+        with open(path3 + 'all_human_wl_adp.pkl','wb') as file:
+            pickle.dump(all_human_wl_adp,file)
+
+        
+        with open(path3 + 'all_human_wl_k.pkl','wb') as file2:
+            pickle.dump(all_human_wl_k,file2)
     
         
         np.save(path3+'all_auto_cost_adp.npy',all_auto_cost_adp)
@@ -317,25 +333,25 @@ def compute_performance(betas,result_path,lamda_new, simulation_time, num_runs=1
         ##preparing the table###
         
 
-        mean_human_adp = np.mean(all_human_cost_adp)
-        std_human_adp = np.std(all_human_cost_adp)
-        mean_auto_adp = np.mean(all_auto_cost_adp)
-        std_auto_adp = np.std(all_auto_cost_adp)
-        mean_deferred_adp = np.mean(all_deferred_cost_adp)
-        std_deferred_adp  = np.std(all_deferred_cost_adp)
+        mean_human_adp = round(np.mean(all_human_cost_adp),2)
+        std_human_adp = round(np.std(all_human_cost_adp),2)
+        mean_auto_adp = round(np.mean(all_auto_cost_adp),2)
+        std_auto_adp = round(np.std(all_auto_cost_adp),2)
+        mean_deferred_adp = round(np.mean(all_deferred_cost_adp),2)
+        std_deferred_adp  = round(np.std(all_deferred_cost_adp),2)
 
-        mean_total_cost_adp = np.mean(all_human_cost_adp+all_auto_cost_adp +all_deferred_cost_adp)
-        std_total_cost_adp = np.std(all_human_cost_adp+all_auto_cost_adp + all_deferred_cost_adp)
+        mean_total_cost_adp = round(np.mean(all_human_cost_adp+all_auto_cost_adp ),2)
+        std_total_cost_adp = round(np.std(all_human_cost_adp+all_auto_cost_adp),2)
 
-        mean_human_k = np.mean(all_human_cost_k)
-        std_human_k = np.std(all_human_cost_k)
-        mean_auto_k = np.mean(all_auto_cost_k)
-        std_auto_k = np.std(all_auto_cost_k)
-        mean_deferred_k = np.mean(all_deferred_cost_k)
-        std_deferred_k = np.std(all_deferred_cost_k)
+        mean_human_k = round(np.mean(all_human_cost_k),2)
+        std_human_k = round(np.std(all_human_cost_k),2)
+        mean_auto_k = round(np.mean(all_auto_cost_k),2)
+        std_auto_k = round(np.std(all_auto_cost_k),2)
+        mean_deferred_k = round(np.mean(all_deferred_cost_k),2)
+        std_deferred_k = round(np.std(all_deferred_cost_k),2)
 
-        mean_total_cost_k = np.mean(all_auto_cost_k + all_human_cost_k + all_deferred_cost_k)
-        std_total_cost_k = np.std(all_auto_cost_k + all_human_cost_k + all_deferred_cost_k)
+        mean_total_cost_k = round(np.mean(all_auto_cost_k + all_human_cost_k),2)
+        std_total_cost_k = round(np.std(all_auto_cost_k + all_human_cost_k),2)
 
         nrow = pd.DataFrame([[str(beta),str(mean_human_adp)+'+-'+str(std_human_adp), str(mean_auto_adp)+'+-'+str(std_auto_adp),str(mean_deferred_adp)+'+-'+str(std_deferred_adp),
                               str(mean_total_cost_adp)+'+-'+str(std_total_cost_adp), str(mean_human_k)+'+-'+str(std_human_k),
