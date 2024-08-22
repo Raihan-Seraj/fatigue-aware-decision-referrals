@@ -214,7 +214,7 @@ def compute_performance(betas,result_path,lamda_new, simulation_time, num_runs=1
             deferred_cost_adp_new = 0
 
             mega_batch = [ut.get_auto_obs() for _ in range(simulation_time)]
-            all_mega_batch['Run-'+str(run)+1]=mega_batch
+            all_mega_batch['Run-'+str(run+1)]=mega_batch
             hum_wl_adp = np.zeros(simulation_time)
             hum_wl_k = np.zeros(simulation_time)
             for t in range(simulation_time):
