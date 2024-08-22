@@ -179,7 +179,7 @@ def main():
     betas=[0.1, 0.3, 0.5,0.7, 0.9]
 
     # defining the value of d_0
-    d_0 = 4
+    d_0 = 4.5
     # defining the prior distribution of H_0 and H_1 respectively
     prior = [0.8, 0.2]
 
@@ -200,19 +200,19 @@ def main():
 
     # number of bins used for the discretization of fatigue 
     num_bins_fatigue = 10
-    num_expectation_samples = 100
+    num_expectation_samples = 50
 
-    cfp = 8#np.random.uniform(8, 12)
-    cfn = 8#np.random.uniform(8, 12)
-    ctp = 1.5#np.random.uniform(0, 2)
-    ctn = 1.5#np.random.uniform(0, 2)
+    cfp = 1#np.random.uniform(8, 12)
+    cfn = 1#np.random.uniform(8, 12)
+    ctp = 0#np.random.uniform(0, 2)
+    ctn = 0#np.random.uniform(0, 2)
     cm = 0
 
     # fatigue recovery rate
-    mu = 0.03
+    mu = 0.01
 
     # fatigue growth rate
-    lamda = 0.05
+    lamda = 0.03
 
     result_path = "results/"
 

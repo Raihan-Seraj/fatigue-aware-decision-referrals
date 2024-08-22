@@ -17,8 +17,8 @@ def plot_decision_boundary(result_path, beta):
 
     num_tasks_per_batch = 20
 
-    mu = 0.03
-    lamda = 0.05
+    mu = 0.1
+    lamda = 0.3
 
     H0 = 0
 
@@ -26,16 +26,16 @@ def plot_decision_boundary(result_path, beta):
 
     prior = [0.8,0.2]
 
-    d_0 = 4#params["d_0"]
+    d_0 = 4.5#params["d_0"]
 
 
     sigma_h = 1
     sigma_a = 2
 
-    ctp = 1.5#params["ctp"]
-    ctn = 1.5#params["ctn"]
-    cfp = 8#params["cfp"]
-    cfn = 8#params["cfn"]
+    ctp = 0#params["ctp"]
+    ctn = 0#params["ctn"]
+    cfp = 1#params["cfp"]
+    cfn = 1#params["cfn"]
     cm = 0
     num_bins_fatigue = 10
     T = 20

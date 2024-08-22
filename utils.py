@@ -166,7 +166,7 @@ class Utils(object):
     def tau(self,w_t, F_t):
 
         tau = self.d_0 * (1 - self.beta * min((w_t / self.w_0),1) - (1 - self.beta) * F_t) / 2 + (
-            self.sigma_h**2 / max(self.d_0 * (1 - self.beta * min((w_t / self.w_0),1) - (1 - self.beta) * F_t),1e-10)
+            self.sigma_h**2 / max(self.d_0 * (1 - self.beta * min((w_t / self.w_0),1) - (1 - self.beta) * F_t),1e-20)
         ) * np.log((self.cfp - self.ctn) * self.prior[0] / ((self.cfn - self.ctp) * self.prior[1]))
 
         return tau
@@ -237,6 +237,8 @@ class Utils(object):
         gamma = self.compute_gamma(
             automation_posterior, w_t, F_t
         )
+
+       
 
         G = C_a - gamma - self.cm
 

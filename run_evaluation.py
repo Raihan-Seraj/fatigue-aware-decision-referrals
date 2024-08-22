@@ -168,7 +168,7 @@ def compute_performance(betas,result_path,lamda_new, simulation_time, num_runs=1
         #initializing the utility with a different value of lambda (different than the one used for training)
         ut_new = Utils(num_tasks_per_batch, mu, lamda_new, w_0, sigma_a, H0, H1, prior, d_0, beta, sigma_h, ctp, ctn, cfp, cfn, cm, num_bins_fatigue)
 
-        ut_k = Utils(num_tasks_per_batch, mu, lamda_new, w_0, sigma_a, H0, H1, prior, d_0, beta, sigma_h, ctp, ctn, cfp, cfn,0, num_bins_fatigue)
+        ut_k = Utils(num_tasks_per_batch, mu, lamda, w_0, sigma_a, H0, H1, prior, d_0, beta, sigma_h, ctp, ctn, cfp, cfn,0, num_bins_fatigue)
 
 
         V_bar = np.load(result_path+'num_tasks 20/beta '+str(beta)+'/V_bar.npy')
@@ -188,6 +188,8 @@ def compute_performance(betas,result_path,lamda_new, simulation_time, num_runs=1
 
         all_human_wl_adp = {}
         all_human_wl_k={}
+
+        all_mega_batch = {}
 
         for run in tqdm(range(num_runs)):
         
@@ -212,6 +214,7 @@ def compute_performance(betas,result_path,lamda_new, simulation_time, num_runs=1
             deferred_cost_adp_new = 0
 
             mega_batch = [ut.get_auto_obs() for _ in range(simulation_time)]
+            all_mega_batch['Run-'+str(run)+1]=mega_batch
             hum_wl_adp = np.zeros(simulation_time)
             hum_wl_k = np.zeros(simulation_time)
             for t in range(simulation_time):
@@ -304,6 +307,10 @@ def compute_performance(betas,result_path,lamda_new, simulation_time, num_runs=1
         
         with open(path3 + 'all_human_wl_k.pkl','wb') as file2:
             pickle.dump(all_human_wl_k,file2)
+        
+
+        with open(path3 + 'all_mega_batch.pkl','wb') as file3:
+            pickle.dump(all_mega_batch,file3)
     
         
         np.save(path3+'all_auto_cost_adp.npy',all_auto_cost_adp)
@@ -421,7 +428,7 @@ def run_evalutation(beta, result_path,lamda_new, simulation_time):
 
     ut = Utils(num_tasks_per_batch, mu, lamda, w_0, sigma_a, H0, H1, prior, d_0, beta, sigma_h, ctp, ctn, cfp, cfn, cm, num_bins_fatigue)
 
-    ut_k = Utils(num_tasks_per_batch, mu, lamda, w_0, sigma_a, H0, H1, prior, d_0, beta, sigma_h, ctp, ctn, cfp, cfn, 0.3, num_bins_fatigue)
+    ut_k = Utils(num_tasks_per_batch, mu, lamda, w_0, sigma_a, H0, H1, prior, d_0, beta, sigma_h, ctp, ctn, cfp, cfn, 0, num_bins_fatigue)
 
     ut_new = Utils(num_tasks_per_batch, mu, lamda_new, w_0, sigma_a, H0, H1, prior, d_0, beta, sigma_h, ctp, ctn, cfp, cfn, cm, num_bins_fatigue)
 
