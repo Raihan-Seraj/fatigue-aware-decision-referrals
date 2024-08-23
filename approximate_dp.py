@@ -209,10 +209,10 @@ def main():
     cm = 0
 
     # fatigue recovery rate
-    mu = 0.01
+    mu = 0.1
 
     # fatigue growth rate
-    lamda = 0.03
+    lamda = 0.3
 
     result_path = "results/"
 
