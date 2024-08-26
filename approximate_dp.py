@@ -179,7 +179,7 @@ def main():
     betas=[0.1, 0.3, 0.5,0.7, 0.9]
 
     # defining the value of d_0
-    d_0 = 4.5
+    d_0 = 15
     # defining the prior distribution of H_0 and H_1 respectively
     prior = [0.6, 0.4]
 
