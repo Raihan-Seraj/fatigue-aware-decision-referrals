@@ -5,11 +5,12 @@ import pandas as pd
 import os 
 from utils import Utils
 import matplotlib
+import pickle
 matplotlib.use('Agg')
 
 ## get the parameter for any value of beta since we are using the same parameters for all value of beta
 
-def plot_decision_boundary(result_path, beta):
+def plot_decision_boundary(result_path, beta,plot_posterior=False):
     plt.figure(figsize=(110, 110)) 
     
 
@@ -17,16 +18,16 @@ def plot_decision_boundary(result_path, beta):
 
     num_tasks_per_batch = 20
 
-    mu = 0.1
-    lamda = 0.3
+    mu = 0.01
+    lamda = 0.03
 
     H0 = 0
 
     H1 = 1
 
-    prior = [0.8,0.2]
+    prior = [0.6,0.4]
 
-    d_0 = 4.5#params["d_0"]
+    d_0 = 15#params["d_0"]
 
 
     sigma_h = 1
@@ -72,7 +73,13 @@ def plot_decision_boundary(result_path, beta):
             hum_costs=[ut.compute_gamma(automation_posterior,w_t,F_t) for automation_posterior in automation_posteriors]
 
             plt.plot(posteriors_h1,hum_costs,color='blue', label='Human (F_t,w_t)=('+str(F_t)+','+str(w_t)+')',linewidth=2)
+
+           
+
     
+                
+
+
     plt.grid(True)  # Show grid
     plt.legend()
     plt.tick_params(axis='both', which='major', labelsize=60) 
@@ -99,6 +106,30 @@ def plot_decision_boundary(result_path, beta):
     plt.clf()
     plt.close()
 
+    if plot_posterior:
+
+        mega_obs_path = result_path+'plot_analysis/cost_comparison/beta '+str(beta)+'/all_mega_batch.pkl'
+
+        with open(mega_obs_path,'rb') as file:
+            all_mega_obs = pickle.load(file)
+        
+        x_vals = np.arange(20)
+        for run in range(len(all_mega_obs)):
+
+            for timestep in range(len(all_mega_obs['Run-'+str(run+1)])):
+
+                plt.scatter(np.arange(1,21,1), all_mega_obs['Run-'+str(run+1)][timestep][2],color='black', s=60)
+
+
+        plt.xlabel('Number of tasks')
+        plt.ylabel('Posterior H1 Value')
+
+    
+        plt.savefig(path2+'posterior_h1_freq.pdf')
+        plt.clf()
+        plt.close()
+
+
     
 
 
@@ -107,11 +138,11 @@ if __name__=='__main__':
     betas = [0.1,0.3,0.5,0.7,0.9]
 
 
-    result_path = 'results/'
+    result_path = 'results_v4/'
 
     for beta in betas:
 
-        plot_decision_boundary(result_path, beta)
+        plot_decision_boundary(result_path, beta,False)
 
 
 
