@@ -14,7 +14,7 @@ def create_performance_table(betas, result_path):
 	round_decimal_places=3
       
 	final_data = pd.DataFrame(columns=['Beta','Expected Total Human Cost-ADP', ' Expected Total Human Cost-K','Expected Human Cost Per Taskload-ADP','Expected Human Cost Per Taskload-K',
-										'Expected Total Automation Cost-ADP','Expected Total Automation Cost-K', 'Expected Automation Cost Per Taskload-ADP', 'Expected Automation Cost Per Taskload-K','Expected Total Cost-ADP','Expected Total Cost-K'])
+										'Expected Total Automation Cost-ADP','Expected Total Automation Cost-K', 'Expected Automation Cost Per Taskload-ADP', 'Expected Automation Cost Per Taskload-K','Expected Total Cost-ADP','Expected Total Cost-K', 'Expected Taskload of the Human-ADP','Expected Taskload of the Human-K'])
 
 
 
@@ -90,7 +90,11 @@ def create_performance_table(betas, result_path):
 	
 		expected_total_cost_k = np.round(np.mean(all_run_human_cost_k + all_run_auto_cost_k),round_decimal_places)
 		std_total_cost_k = np.round(np.std(all_run_human_cost_k + all_run_auto_cost_k),round_decimal_places)
-	
+
+		expected_taskload_human_adp = np.round(np.mean([np.mean(all_run_human_wl_adp['Run-'+str(i+1)]) for i in range(len(all_run_human_wl_adp))]),round_decimal_places)
+		std_taskload_human_adp = np.round(np.std([sum(all_run_human_wl_adp['Run-'+str(i+1)]) for i in range(len(all_run_human_wl_adp))]),round_decimal_places)
+		expected_taskload_human_k = np.round(np.mean([np.mean(all_run_human_wl_k['Run-'+str(i+1)]) for i in range(len(all_run_human_wl_k))]),round_decimal_places)
+		std_taskload_human_k = np.round(np.std([np.mean(all_run_human_wl_k['Run-'+str(i+1)]) for i in range(len(all_run_human_wl_k))]),round_decimal_places)
 
 
 		
@@ -104,7 +108,9 @@ def create_performance_table(betas, result_path):
 						   str(expected_automation_cost_per_wl_adp)+'+-'+str(std_automation_cost_per_wl_adp),
 						   str(expected_automation_cost_per_wl_k)+'+-'+str(std_automation_cost_per_wl_k),
 						   str(expected_total_cost_adp)+'+-'+str(std_total_cost_adp),
-						   str(expected_total_cost_k)+'+-'+str(std_total_cost_k)]],columns=final_data.columns)
+						   str(expected_total_cost_k)+'+-'+str(std_total_cost_k),
+						   str(expected_taskload_human_adp)+'+-'+str(std_taskload_human_adp),
+						   str(expected_taskload_human_k)+'+-'+str(std_taskload_human_k)]],columns=final_data.columns)
 		
 
 		final_data = pd.concat([final_data,new_row],ignore_index=True)
@@ -150,7 +156,7 @@ def plot_human_perf_vs_taskload(beta, result_path):
 
 if __name__=='__main__':
       
-	result_path = 'results_v1/'
+	result_path = 'results_v3/'
 
 	betas = [0.1,0.3,0.5,0.7,0.9]
 
