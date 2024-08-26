@@ -181,7 +181,7 @@ def main():
     # defining the value of d_0
     d_0 = 4.5
     # defining the prior distribution of H_0 and H_1 respectively
-    prior = [0.8, 0.2]
+    prior = [0.6, 0.4]
 
     # defining the value of H_0 and H_1
     H0 = 0
@@ -209,10 +209,10 @@ def main():
     cm = 0
 
     # fatigue recovery rate
-    mu = 0.1
+    mu = 0.01
 
     # fatigue growth rate
-    lamda = 0.3
+    lamda = 0.03
 
     result_path = "results/"
 
