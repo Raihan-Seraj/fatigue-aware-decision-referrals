@@ -80,7 +80,7 @@ def create_performance_table(betas, result_path):
 		std_total_automation_cost_k = np.round(np.std(all_run_auto_cost_k),round_decimal_places)
 
 		expected_automation_cost_per_wl_adp = np.round(np.mean(automation_cost_per_wl_per_run_adp),round_decimal_places)
-		std_automation_cost_per_wl_adp = np.round(np.std(automation_cost_per_wl_per_run_adp))
+		std_automation_cost_per_wl_adp = np.round(np.std(automation_cost_per_wl_per_run_adp),round_decimal_places)
 
 		expected_automation_cost_per_wl_k = np.round(np.mean(automation_cost_per_wl_per_run_k),round_decimal_places)
 		std_automation_cost_per_wl_k = np.round(np.std(automation_cost_per_wl_per_run_k),round_decimal_places)
