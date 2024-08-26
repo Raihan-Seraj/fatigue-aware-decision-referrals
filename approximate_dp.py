@@ -200,7 +200,7 @@ def main():
 
     # number of bins used for the discretization of fatigue 
     num_bins_fatigue = 10
-    num_expectation_samples = 50
+    num_expectation_samples = 100
 
     cfp = 1#np.random.uniform(8, 12)
     cfn = 1#np.random.uniform(8, 12)
