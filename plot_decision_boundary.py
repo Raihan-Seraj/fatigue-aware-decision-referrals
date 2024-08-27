@@ -21,13 +21,15 @@ def plot_decision_boundary(result_path, beta,plot_posterior=False):
     mu = 0.01
     lamda = 0.03
 
+    d_0 = 5
+
     H0 = 0
 
-    H1 = 1
+    H1 = d_0
 
     prior = [0.6,0.4]
 
-    d_0 = 15#params["d_0"]
+    #params["d_0"]
 
 
     sigma_h = 1
@@ -61,17 +63,22 @@ def plot_decision_boundary(result_path, beta,plot_posterior=False):
 
     F_states = np.round(np.linspace(0, 1, num_bins_fatigue + 1), 2)
 
+    #F_states = [0]
+
+    all_workloads = [9]
     automation_posteriors = [[1-post_h1,post_h1] for post_h1 in posteriors_h1]
 
     # we are considering taskload form {0,..,20}
     for w_t in range(21):
 
+    #for w_t in all_workloads:
         #computing the human cost for each taskload
 
         for F_t_idx, F_t in enumerate(F_states):
 
             hum_costs=[ut.compute_gamma(automation_posterior,w_t,F_t) for automation_posterior in automation_posteriors]
 
+            
             plt.plot(posteriors_h1,hum_costs,color='blue', label='Human (F_t,w_t)=('+str(F_t)+','+str(w_t)+')',linewidth=2)
 
            
@@ -138,7 +145,7 @@ if __name__=='__main__':
     betas = [0.1,0.3,0.5,0.7,0.9]
 
 
-    result_path = 'results_v4/'
+    result_path = 'results_v6/'
 
     for beta in betas:
 
