@@ -179,13 +179,13 @@ def main():
     betas=[0.1, 0.3, 0.5,0.7, 0.9]
 
     # defining the value of d_0
-    d_0 = 15
+    d_0 = 5
     # defining the prior distribution of H_0 and H_1 respectively
     prior = [0.6, 0.4]
 
     # defining the value of H_0 and H_1
     H0 = 0
-    H1 = 1
+    H1 = d_0
 
     # the number of tasks per batch
     num_tasks_per_batch=20
