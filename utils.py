@@ -205,6 +205,7 @@ class Utils(object):
             P_h_tp * self.ctp + (1 - P_h_tp) * self.cfn
         ) + automation_posterior[0] * (P_h_fp * self.cfp + (1 - P_h_fp) * self.ctn)
 
+        
         return gamma
     
 
