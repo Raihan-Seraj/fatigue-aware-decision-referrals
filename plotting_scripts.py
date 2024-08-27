@@ -99,18 +99,18 @@ def create_performance_table(betas, result_path):
 
 		
 
-		new_row  = pd.DataFrame([[beta, str(expected_total_human_cost_adp)+'+-'+str(std_total_human_cost_adp),
-						   str(expected_total_human_cost_k)+'+-'+str(std_total_human_cost_k),
-						   str(expected_human_cost_per_wl_adp)+'+-'+str(std_human_cost_per_wl_adp),
-						   str(expected_human_cost_per_wl_k)+'+-'+str(std_human_cost_per_wl_k),
-						   str(expected_total_automation_cost_adp)+'+-'+str(std_total_automation_cost_adp),
-						   str(expected_total_automation_cost_k)+'+-'+str(std_total_automation_cost_k),
-						   str(expected_automation_cost_per_wl_adp)+'+-'+str(std_automation_cost_per_wl_adp),
-						   str(expected_automation_cost_per_wl_k)+'+-'+str(std_automation_cost_per_wl_k),
-						   str(expected_total_cost_adp)+'+-'+str(std_total_cost_adp),
-						   str(expected_total_cost_k)+'+-'+str(std_total_cost_k),
-						   str(expected_taskload_human_adp)+'+-'+str(std_taskload_human_adp),
-						   str(expected_taskload_human_k)+'+-'+str(std_taskload_human_k)]],columns=final_data.columns)
+		new_row  = pd.DataFrame([[beta, str(expected_total_human_cost_adp)+'$\pm$'+str(std_total_human_cost_adp),
+						   str(expected_total_human_cost_k)+'$\pm$'+str(std_total_human_cost_k),
+						   str(expected_human_cost_per_wl_adp)+'$\pm$'+str(std_human_cost_per_wl_adp),
+						   str(expected_human_cost_per_wl_k)+'$\pm$'+str(std_human_cost_per_wl_k),
+						   str(expected_total_automation_cost_adp)+'$\pm$'+str(std_total_automation_cost_adp),
+						   str(expected_total_automation_cost_k)+'$\pm$'+str(std_total_automation_cost_k),
+						   str(expected_automation_cost_per_wl_adp)+'$\pm$'+str(std_automation_cost_per_wl_adp),
+						   str(expected_automation_cost_per_wl_k)+'$\pm$'+str(std_automation_cost_per_wl_k),
+						   str(expected_total_cost_adp)+'$\pm$'+str(std_total_cost_adp),
+						   str(expected_total_cost_k)+'$\pm$'+str(std_total_cost_k),
+						   str(expected_taskload_human_adp)+'$\pm$'+str(std_taskload_human_adp),
+						   str(expected_taskload_human_k)+'$\pm$'+str(std_taskload_human_k)]],columns=final_data.columns)
 		
 
 		final_data = pd.concat([final_data,new_row],ignore_index=True)
@@ -156,7 +156,7 @@ def plot_human_perf_vs_taskload(beta, result_path):
 
 if __name__=='__main__':
       
-	result_path = 'results_v3/'
+	result_path = 'results/'
 
 	betas = [0.1,0.3,0.5,0.7,0.9]
 
