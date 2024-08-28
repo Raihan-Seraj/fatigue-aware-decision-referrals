@@ -58,7 +58,7 @@ def compute_kesavs_algo(
 
     deferred_idx_dp = all_deferred_indices[min_idx]
 
-    min_wl = min_idx+1
+    min_wl = min_idx
 
     return min_wl, deferred_idx_dp
 
@@ -107,7 +107,7 @@ def compute_adp_solution(
 
     min_cost = all_cost[min_idx]
 
-    wl_dp = min_idx+1
+    wl_dp = min_idx
     
     defrred_idx_dp = all_deferred_indices[min_idx]
 
