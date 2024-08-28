@@ -58,7 +58,7 @@ def compute_kesavs_algo(
 
     deferred_idx_dp = all_deferred_indices[min_idx]
 
-    min_wl = min_idx
+    min_wl = min_idx+1
 
     return min_wl, deferred_idx_dp
 
@@ -82,7 +82,7 @@ def compute_adp_solution(
 
     all_cost = []
 
-    for w_t in range(ut.num_tasks_per_batch):
+    for w_t in range(ut.num_tasks_per_batch+1):
 
         F_tp1 = ut.get_fatigue(F_t, w_t)
 
@@ -107,7 +107,7 @@ def compute_adp_solution(
 
     min_cost = all_cost[min_idx]
 
-    wl_dp = min_idx
+    wl_dp = min_idx+1
     
     defrred_idx_dp = all_deferred_indices[min_idx]
 
