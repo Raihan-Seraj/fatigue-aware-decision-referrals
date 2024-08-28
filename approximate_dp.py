@@ -190,17 +190,18 @@ def main():
     # the number of tasks per batch
     num_tasks_per_batch=20
     # parameters used
-    sigma_a = 2
-    sigma_h = 1
+    sigma_a = 3.5
+    sigma_h = 1.5
+
     # total time for which the system will run 
     T = 20
 
     # The threshold value 
-    w_0 = 12
+    w_0 = 15
 
     # number of bins used for the discretization of fatigue 
-    num_bins_fatigue = 10
-    num_expectation_samples = 100
+    num_bins_fatigue = 20
+    num_expectation_samples = 30
 
     cfp = 1#np.random.uniform(8, 12)
     cfn = 1#np.random.uniform(8, 12)
@@ -209,10 +210,10 @@ def main():
     cm = 0
 
     # fatigue recovery rate
-    mu = 0.01
+    mu = 0.003
 
     # fatigue growth rate
-    lamda = 0.03
+    lamda = 0.005
 
     result_path = "results/"
 

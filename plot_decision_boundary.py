@@ -18,8 +18,8 @@ def plot_decision_boundary(result_path, beta,plot_posterior=False):
 
     num_tasks_per_batch = 20
 
-    mu = 0.01
-    lamda = 0.03
+    mu = 0.003
+    lamda = 0.005
 
     d_0 = 5
 
@@ -32,19 +32,19 @@ def plot_decision_boundary(result_path, beta,plot_posterior=False):
     #params["d_0"]
 
 
-    sigma_h = 1
-    sigma_a = 2
+    sigma_h = 1.5
+    sigma_a = 3.5
 
     ctp = 0#params["ctp"]
     ctn = 0#params["ctn"]
     cfp = 1#params["cfp"]
     cfn = 1#params["cfn"]
     cm = 0
-    num_bins_fatigue = 10
+    num_bins_fatigue = 20
     T = 20
     num_expecation_samples = 100
 
-    w_0 = 12#params["w_0"]
+    w_0 = 15#params["w_0"]
 
 
     ut = Utils(num_tasks_per_batch, mu, lamda, w_0, sigma_a, H0, H1, prior, d_0, beta, sigma_h, ctp, ctn, cfp, cfn, cm, num_bins_fatigue)
@@ -58,14 +58,14 @@ def plot_decision_boundary(result_path, beta,plot_posterior=False):
         ctn + (cfn - ctn) * automation_posterior_h1,
         cfp + (ctp - cfp) * automation_posterior_h1,
     ) for automation_posterior_h1 in posteriors_h1]
-
+    
     plt.plot(posteriors_h1,auto_costs,'*--',label='automation cost',color='red', linewidth=20, markersize=50)
 
     F_states = np.round(np.linspace(0, 1, num_bins_fatigue + 1), 2)
 
     #F_states = [0]
 
-    all_workloads = [9]
+    #all_workloads = [9]
     automation_posteriors = [[1-post_h1,post_h1] for post_h1 in posteriors_h1]
 
     # we are considering taskload form {0,..,20}
