@@ -537,7 +537,7 @@ def main():
 
   
     
-    betas = [0.1,0.3,0.5,0.7,0.9]
+    betas = [0.3,0.5,0.7,0.9]
 
     result_path = "results/"
     simulation_time = 20

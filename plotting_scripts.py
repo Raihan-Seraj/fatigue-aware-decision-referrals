@@ -158,6 +158,6 @@ if __name__=='__main__':
       
 	result_path = 'results/'
 
-	betas = [0.1,0.3,0.5,0.7,0.9]
+	betas = [0.3,0.5,0.7,0.9]
 
 	create_performance_table(betas, result_path)

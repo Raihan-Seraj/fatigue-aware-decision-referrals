@@ -27,7 +27,7 @@ def plot_decision_boundary(result_path, beta,plot_posterior=False):
 
     H1 = d_0
 
-    prior = [0.6,0.4]
+    prior = [0.7,0.3]
 
     #params["d_0"]
 
@@ -142,10 +142,10 @@ def plot_decision_boundary(result_path, beta,plot_posterior=False):
 
 if __name__=='__main__':
 
-    betas = [0.1,0.3,0.5,0.7,0.9]
+    betas = [0.3,0.5,0.7,0.9]
 
 
-    result_path = 'results_v6/'
+    result_path = 'results/'
 
     for beta in betas:
 
