@@ -114,11 +114,11 @@ def compute_adp_solution(
     return wl_dp, defrred_idx_dp
 
 
-def compute_perf_multiprocess(beta,result_path, lamda_new, simulation_time, num_runs,result_dataset,performance_data):
+def compute_perf_multiprocess(beta,result_path, lamda_new, simulation_time, num_runs,num_tasks_per_batch):
 
     print("Computing peformance with beta = "+str(beta)+'\n')
 
-    param_path = result_path+'num_tasks 20'+'/beta '+str(beta)+'/params.json'
+    param_path = result_path+'num_tasks '+str(num_tasks_per_batch)+'/beta '+str(beta)+'/params.json'
 
     with open(param_path,'r') as file:
         params = json.load(file)
@@ -161,7 +161,7 @@ def compute_perf_multiprocess(beta,result_path, lamda_new, simulation_time, num_
     ut_k = Utils(num_tasks_per_batch, mu, lamda, w_0, sigma_a, H0, H1, prior, d_0, beta, sigma_h, ctp, ctn, cfp, cfn,0, num_bins_fatigue)
 
 
-    V_bar = np.load(result_path+'num_tasks 20/beta '+str(beta)+'/V_bar.npy')
+    V_bar = np.load(result_path+'num_tasks '+str(num_tasks_per_batch)+'/beta '+str(beta)+'/V_bar.npy')
 
     all_auto_cost_k = np.zeros(num_runs)
     all_human_cost_k = np.zeros(num_runs)
@@ -270,13 +270,13 @@ def compute_perf_multiprocess(beta,result_path, lamda_new, simulation_time, num_
         
         #result_dataset = pd.DataFrame(columns=['Algorithm Name','Beta Value','Automation Cost', 'Human Cost','Deferred Cost'])
         
-        new_rows = pd.DataFrame([['ADP', beta, auto_cost_adp, human_cost_adp, deferred_cost_adp],['ADP-Lambda=0.01', beta, auto_cost_adp_new, human_cost_adp_new, deferred_cost_adp_new],['K-Algorithm',beta, auto_cost_k, human_cost_k, deferred_cost_k]], columns=result_dataset.columns)
+        #new_rows = pd.DataFrame([['ADP', beta, auto_cost_adp, human_cost_adp, deferred_cost_adp],['ADP-Lambda=0.01', beta, auto_cost_adp_new, human_cost_adp_new, deferred_cost_adp_new],['K-Algorithm',beta, auto_cost_k, human_cost_k, deferred_cost_k]], columns=result_dataset.columns)
         #new_row2 = pd.DataFrame([['K-Algorithm', beta, avg_cost_k]], columns=result_dataset.columns)
 
-        result_dataset = pd.concat([result_dataset,new_rows],ignore_index=True)
+        #result_dataset = pd.concat([result_dataset,new_rows],ignore_index=True)
         
 
-    path1 = result_path+'plot_analysis/'
+    path1 = result_path+'num_tasks '+str(num_tasks_per_batch)+'/plot_analysis/'
     if not os.path.exists(path1):
         try:
             os.makedirs(path1,exist_ok=True)
@@ -341,16 +341,18 @@ def compute_perf_multiprocess(beta,result_path, lamda_new, simulation_time, num_
 
 
 
-def compute_performance(betas,result_path,lamda_new, simulation_time, num_runs=100):
+def compute_performance(betas,result_path,lamda_new, simulation_time,num_tasks_per_batch, num_runs=10):
 
-    result_dataset = pd.DataFrame(columns=['Algorithm Name','Beta Value','Automation Cost', 'Human Cost','Deferred Cost'])
+    # result_dataset = pd.DataFrame(columns=['Algorithm Name','Beta Value','Automation Cost', 'Human Cost','Deferred Cost'])
 
-    performance_data = pd.DataFrame(columns=['Beta', 'ADP Human Cost','ADP Automation Cost','ADP Deferred Cost','ADP Total Cost',
-                                             'K Algorithm Human Cost', 'K Algorithm Automation Cost','K Deferred Cost','K Algorithm Total Cost'])
+    # performance_data = pd.DataFrame(columns=['Beta', 'ADP Human Cost','ADP Automation Cost','ADP Deferred Cost','ADP Total Cost',
+    #                                          'K Algorithm Human Cost', 'K Algorithm Automation Cost','K Deferred Cost','K Algorithm Total Cost'])
                                            
 
-    inputs = [(beta,result_path,lamda_new,simulation_time, num_runs,result_dataset,performance_data) for beta in betas]                 
+    inputs = [(beta,result_path,lamda_new,simulation_time, num_runs, num_tasks_per_batch) for beta in betas]                 
     
+
+    #compute_perf_multiprocess(beta,result_path, lamda_new, simulation_time, num_runs,result_dataset,num_tasks_per_batch)
     with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
         pool.starmap(compute_perf_multiprocess, inputs)
     
@@ -366,11 +368,11 @@ def compute_performance(betas,result_path,lamda_new, simulation_time, num_runs=1
 
 
 
-def run_evalutation(beta, result_path,lamda_new, simulation_time):
+def run_evalutation(beta, result_path,lamda_new, simulation_time,num_tasks_per_batch):
 
     ## loading the parameters
 
-    param_path = result_path+'num_tasks 20'+'/beta '+str(beta)+'/params.json'
+    param_path = result_path+'num_tasks '+str(num_tasks_per_batch)+'/beta '+str(beta)+'/params.json'
 
     with open(param_path,'r') as file:
         params = json.load(file)
@@ -414,7 +416,7 @@ def run_evalutation(beta, result_path,lamda_new, simulation_time):
     ut_new = Utils(num_tasks_per_batch, mu, lamda_new, w_0, sigma_a, H0, H1, prior, d_0, beta, sigma_h, ctp, ctn, cfp, cfn, cm, num_bins_fatigue)
 
 
-    V_bar = np.load(result_path+'num_tasks 20/beta '+str(beta)+'/V_bar.npy')
+    V_bar = np.load(result_path+'num_tasks '+str(num_tasks_per_batch)+'/beta '+str(beta)+'/V_bar.npy')
 
 
     ## initial fatigue is for kesav 0
@@ -471,13 +473,13 @@ def run_evalutation(beta, result_path,lamda_new, simulation_time):
 
 
 
-def run_perf_eval(beta, result_path,lamda_new,simulation_time):
+def run_perf_eval(beta, result_path,lamda_new,simulation_time,num_tasks_per_batch):
     
-    fatigue_evolution_kesav,fatigue_evolution_adp,fatigue_evolution_adp_new, taskload_evolution_kesav, taskload_evolution_adp, taskload_evolution_adp_new = run_evalutation(beta,result_path,lamda_new,simulation_time)
+    fatigue_evolution_kesav,fatigue_evolution_adp,fatigue_evolution_adp_new, taskload_evolution_kesav, taskload_evolution_adp, taskload_evolution_adp_new = run_evalutation(beta,result_path,lamda_new,simulation_time,num_tasks_per_batch)
 
         ## plotting the level of fatigue 
 
-    path1 = result_path+'plot_analysis/'
+    path1 = result_path+'num_tasks '+str(num_tasks_per_batch)+'/plot_analysis/'
 
     if not os.path.exists(path1):
         try:
@@ -541,9 +543,10 @@ def main():
 
     result_path = "results/"
     simulation_time = 20
+    num_tasks_per_batch=40
     lamda_new=0.01
 
-    inputs = [(beta,result_path,lamda_new,simulation_time) for beta in betas]
+    inputs = [(beta,result_path,lamda_new,simulation_time,num_tasks_per_batch) for beta in betas]
     
     # for beta in betas:
     #     run_perf_eval(beta, result_path,lamda_new,simulation_time)
@@ -553,7 +556,7 @@ def main():
 
    
     
-    compute_performance(betas, result_path,lamda_new,simulation_time)
+    compute_performance(betas, result_path,lamda_new,simulation_time,num_tasks_per_batch)
 
         
 

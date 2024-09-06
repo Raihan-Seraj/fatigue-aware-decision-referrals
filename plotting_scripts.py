@@ -7,9 +7,11 @@ import seaborn as sns
 
 
 
-def create_performance_table(betas, result_path):
+def create_performance_table(betas,num_tasks_per_batch, result_path):
 
-	total_num_tasks=20
+	result_path = result_path + 'num_tasks '+str(num_tasks_per_batch)+'/'
+
+	total_num_tasks=num_tasks_per_batch
 
 	round_decimal_places=3
       
@@ -115,7 +117,6 @@ def create_performance_table(betas, result_path):
 
 		final_data = pd.concat([final_data,new_row],ignore_index=True)
 
-
 	final_data.to_csv(result_path+'refined_performance_table.csv')
 	
 	return
@@ -157,7 +158,7 @@ def plot_human_perf_vs_taskload(beta, result_path):
 if __name__=='__main__':
       
 	result_path = 'results/'
-
+	num_tasks_per_batch=40
 	betas = [0.3,0.5,0.7,0.9]
 
-	create_performance_table(betas, result_path)
+	create_performance_table(betas,num_tasks_per_batch, result_path)

@@ -39,9 +39,11 @@ def approximate_dynamic_program(T, num_expectation_samples,ut):
             sum_y = 0
 
             # number of expectation samples of Y
+            
             for y in range(num_expectation_samples):
-
-                all_cost = []
+                
+                min_cost = float('inf')
+                batched_obs, batched_posterior_h0, batched_posterior_h1 = mega_batch[y]
                 for w_t in range(ut.num_tasks_per_batch + 1):
 
                     ## computing the expectation
@@ -50,7 +52,7 @@ def approximate_dynamic_program(T, num_expectation_samples,ut):
 
                     F_next_idx = ut.discretize_fatigue_state(F_next)
 
-                    batched_obs, batched_posterior_h0, batched_posterior_h1 = mega_batch[y]
+                    
 
                     cstar, _, _ = ut.compute_cstar(
                         F_t,
@@ -61,9 +63,13 @@ def approximate_dynamic_program(T, num_expectation_samples,ut):
 
                     total_cost = cstar + V_bar[t + 1][F_next_idx]
 
-                    all_cost.append(total_cost)
+                    if total_cost < min_cost:
+                        
+                        min_cost = total_cost
 
-                sum_y += min(all_cost)
+                V_t = min_cost  
+
+                sum_y += V_t
 
             expected_value = sum_y / num_expectation_samples
 
@@ -176,19 +182,19 @@ The main function
 '''
 def main():
 
-    betas=[0.1, 0.3, 0.5,0.7, 0.9]
+    betas=[ 0.3, 0.5,0.7, 0.9]
 
     # defining the value of d_0
     d_0 = 5
     # defining the prior distribution of H_0 and H_1 respectively
-    prior = [0.6, 0.4]
+    prior = [0.8, 0.2]
 
     # defining the value of H_0 and H_1
     H0 = 0
     H1 = d_0
 
     # the number of tasks per batch
-    num_tasks_per_batch=20
+    num_tasks_per_batch=40
     # parameters used
     sigma_a = 3.5
     sigma_h = 1.5
@@ -201,7 +207,7 @@ def main():
 
     # number of bins used for the discretization of fatigue 
     num_bins_fatigue = 20
-    num_expectation_samples = 30
+    num_expectation_samples = 20
 
     cfp = 1#np.random.uniform(8, 12)
     cfn = 1#np.random.uniform(8, 12)
@@ -210,10 +216,10 @@ def main():
     cm = 0
 
     # fatigue recovery rate
-    mu = 0.003
+    mu = 0.03
 
     # fatigue growth rate
-    lamda = 0.005
+    lamda = 0.05
 
     result_path = "results/"
 
