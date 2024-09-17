@@ -1,11 +1,13 @@
 import numpy as np 
 
 from utils import Utils
+from run_evaluation import Evaluations
 from tqdm import tqdm
 import json
 import os
 import multiprocessing
 import pickle
+import wandb
 
 
 '''
@@ -22,13 +24,15 @@ Args:
 
 def approximate_dynamic_program(T, num_expectation_samples,ut):
 
+    
+
     # number of possible fatigue states
     F_states = np.round(np.linspace(0, 1, ut.num_bins_fatigue + 1), 2)
 
     # initializing the value of V_bar
     V_bar = {t: np.zeros((ut.num_bins_fatigue + 1)) for t in range(T + 2)}
 
-    mega_batch = [ut.get_auto_obs() for obs in range(num_expectation_samples)]
+    
     
     # looping over time
     for t in tqdm(range(T, -1, -1)):
@@ -43,7 +47,7 @@ def approximate_dynamic_program(T, num_expectation_samples,ut):
             for y in range(num_expectation_samples):
                 
                 min_cost = float('inf')
-                batched_obs, batched_posterior_h0, batched_posterior_h1 = mega_batch[y]
+                batched_obs, batched_posterior_h0, batched_posterior_h1 = ut.get_auto_obs()
                 for w_t in range(ut.num_tasks_per_batch + 1):
 
                     ## computing the expectation
@@ -75,7 +79,12 @@ def approximate_dynamic_program(T, num_expectation_samples,ut):
 
             V_bar[t][F_idx] = expected_value
 
+            
+
+
     return V_bar
+
+
 
 
 
@@ -86,6 +95,8 @@ def run_dp_parallel_beta(num_tasks_per_batch, mu, lamda, w_0, sigma_a, H0, H1, p
     
     ut = Utils(num_tasks_per_batch, mu, lamda, w_0, sigma_a, H0, H1, prior, d_0, beta, sigma_h, ctp, ctn, cfp, cfn, cm, num_bins_fatigue)
 
+    run_info = wandb.init(project="ApproxDynamicProgram",name="beta "+str(beta))
+    
 
     param_values = {
        "num_tasks_per_batch": num_tasks_per_batch, 
@@ -129,6 +140,9 @@ def run_dp_parallel_beta(num_tasks_per_batch, mu, lamda, w_0, sigma_a, H0, H1, p
 
     }
 
+    run_info.config.update(param_values)
+
+
     path1 = result_path
 
     if not os.path.exists(path1):
@@ -164,10 +178,21 @@ def run_dp_parallel_beta(num_tasks_per_batch, mu, lamda, w_0, sigma_a, H0, H1, p
         
     )
 
+    run_info.log({"Value-Function":V_func})
+
+    run_info.log({"Value Function at T": wandb.plot.line(np.arange(len(V_func[-1])),V_func[-1])})
+    run_info.log({"Value Function at 0": wandb.plot.line(np.arange(len(V_func[0])),V_func[0])})
+
+   
+
     V_final = V_func[0]
+
     with open(path_name + 'V_func.pkl','wb') as file:
         pickle.dump(V_func,file)
     np.save(path_name + "V_bar.npy", V_final)
+
+    run_info.finish()
+
 
     return
 
@@ -182,7 +207,8 @@ The main function
 '''
 def main():
 
-    betas=[ 0.3, 0.5,0.7, 0.9]
+    
+    betas=[0.3,0.5,0.7,0.9]
 
     # defining the value of d_0
     d_0 = 5
@@ -194,10 +220,10 @@ def main():
     H1 = d_0
 
     # the number of tasks per batch
-    num_tasks_per_batch=40
+    num_tasks_per_batch=20
     # parameters used
     sigma_a = 3.5
-    sigma_h = 1.5
+    sigma_h = 1.0
 
     # total time for which the system will run 
     T = 20
@@ -216,13 +242,14 @@ def main():
     cm = 0
 
     # fatigue recovery rate
-    mu = 0.03
+    mu = 0.003
 
     # fatigue growth rate
-    lamda = 0.05
+    lamda = 0.005
 
     result_path = "results/"
-
+    
+     
     inputs = [
         (
             num_tasks_per_batch, mu, lamda, w_0, sigma_a, H0, H1, prior, d_0, beta, sigma_h, ctp, ctn, cfp, cfn, cm, num_bins_fatigue, T, num_expectation_samples,result_path
@@ -236,6 +263,31 @@ def main():
     with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
     
         pool.starmap(run_dp_parallel_beta, inputs)
+    
+
+    #Running evaluation 
+    EVAL = Evaluations()
+
+    lamda_new = 0.01
+
+    inputs_eval = [(beta,result_path,lamda_new,T,num_tasks_per_batch) for beta in betas]
+
+    print("Running evaluation for the computed value function ")
+
+    with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
+        pool.starmap(EVAL.run_perf_eval, inputs_eval)
+
+    
+    ## Compute the performance now 
+
+    print("Computing the performance")
+
+    EVAL.compute_performance(betas, result_path, lamda_new, T, num_tasks_per_batch)
+    
+
+
+
+
 
 
 if __name__ == "__main__":

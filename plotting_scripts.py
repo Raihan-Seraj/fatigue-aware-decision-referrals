@@ -16,7 +16,9 @@ def create_performance_table(betas,num_tasks_per_batch, result_path):
 	round_decimal_places=3
       
 	final_data = pd.DataFrame(columns=['Beta','Expected Total Human Cost-ADP', ' Expected Total Human Cost-K','Expected Human Cost Per Taskload-ADP','Expected Human Cost Per Taskload-K',
-										'Expected Total Automation Cost-ADP','Expected Total Automation Cost-K', 'Expected Automation Cost Per Taskload-ADP', 'Expected Automation Cost Per Taskload-K','Expected Total Cost-ADP','Expected Total Cost-K', 'Expected Taskload of the Human-ADP','Expected Taskload of the Human-K'])
+										'Expected Total Automation Cost-ADP','Expected Total Automation Cost-K', 'Expected Automation Cost Per Taskload-ADP', 'Expected Automation Cost Per Taskload-K',
+										'Expected Total Deferred Cost-ADP','Expected Total Deferred Cost-K',
+										'Expected Total Cost-ADP','Expected Total Cost-K', 'Expected Taskload of the Human-ADP','Expected Taskload of the Human-K'])
 
 
 
@@ -31,11 +33,20 @@ def create_performance_table(betas,num_tasks_per_batch, result_path):
 		all_run_automation_cost_k_path = result_path + 'plot_analysis/cost_comparison/beta '+str(beta)+'/all_auto_cost_k.npy'
 
 
+		all_run_deferred_cost_k_path = result_path + 'plot_analysis/cost_comparison/beta '+str(beta)+'/all_deferred_cost_k.npy'
+		all_run_deferred_cost_adp_path = result_path + 'plot_analysis/cost_comparison/beta '+str(beta)+'/all_deferred_cost_adp.npy'
+
+
+
 		all_run_human_cost_adp = np.load(all_run_human_cost_adp_path)
 		all_run_human_cost_k = np.load(all_run_human_cost_k_path)
 
 		all_run_auto_cost_adp = np.load(all_run_automation_cost_adp_path)
 		all_run_auto_cost_k =  np.load(all_run_automation_cost_k_path)
+
+		all_run_deferred_cost_k = np.load(all_run_deferred_cost_k_path)
+		all_run_deferred_cost_adp = np.load(all_run_deferred_cost_adp_path)
+
 
 		# now loading the taskload 
 		all_run_human_tl_adp_path = result_path + 'plot_analysis/cost_comparison/beta '+str(beta)+'/all_human_wl_adp.pkl'
@@ -87,11 +98,19 @@ def create_performance_table(betas,num_tasks_per_batch, result_path):
 		expected_automation_cost_per_wl_k = np.round(np.mean(automation_cost_per_wl_per_run_k),round_decimal_places)
 		std_automation_cost_per_wl_k = np.round(np.std(automation_cost_per_wl_per_run_k),round_decimal_places)
 
-		expected_total_cost_adp = np.round(np.mean(all_run_human_cost_adp + all_run_auto_cost_adp),round_decimal_places)
-		std_total_cost_adp = np.round(np.std(all_run_human_cost_adp + all_run_auto_cost_adp),round_decimal_places)
+		expected_total_deferred_cost_k = np.round(np.mean(all_run_deferred_cost_k),round_decimal_places)
+		std_total_deferred_cost_k = np.round(np.std(all_run_deferred_cost_k),round_decimal_places)
+
+		expected_total_deferred_cost_adp = np.round(np.mean(all_run_deferred_cost_adp),round_decimal_places)
+		std_total_deferred_cost_adp = np.round(np.std(all_run_deferred_cost_adp),round_decimal_places)
+
+
+
+		expected_total_cost_adp = np.round(np.mean(all_run_human_cost_adp + all_run_auto_cost_adp+all_run_deferred_cost_adp),round_decimal_places)
+		std_total_cost_adp = np.round(np.std(all_run_human_cost_adp + all_run_auto_cost_adp+ all_run_deferred_cost_adp),round_decimal_places)
 	
-		expected_total_cost_k = np.round(np.mean(all_run_human_cost_k + all_run_auto_cost_k),round_decimal_places)
-		std_total_cost_k = np.round(np.std(all_run_human_cost_k + all_run_auto_cost_k),round_decimal_places)
+		expected_total_cost_k = np.round(np.mean(all_run_human_cost_k + all_run_auto_cost_k + all_run_deferred_cost_k),round_decimal_places)
+		std_total_cost_k = np.round(np.std(all_run_human_cost_k + all_run_auto_cost_k + all_run_deferred_cost_k),round_decimal_places)
 
 		expected_taskload_human_adp = np.round(np.mean([np.mean(all_run_human_wl_adp['Run-'+str(i+1)]) for i in range(len(all_run_human_wl_adp))]),round_decimal_places)
 		std_taskload_human_adp = np.round(np.std([sum(all_run_human_wl_adp['Run-'+str(i+1)]) for i in range(len(all_run_human_wl_adp))]),round_decimal_places)
@@ -109,6 +128,8 @@ def create_performance_table(betas,num_tasks_per_batch, result_path):
 						   str(expected_total_automation_cost_k)+'$\pm$'+str(std_total_automation_cost_k),
 						   str(expected_automation_cost_per_wl_adp)+'$\pm$'+str(std_automation_cost_per_wl_adp),
 						   str(expected_automation_cost_per_wl_k)+'$\pm$'+str(std_automation_cost_per_wl_k),
+						   str(expected_total_deferred_cost_adp)+'$\pm$'+str(std_total_deferred_cost_adp),
+						   str(expected_total_deferred_cost_k)+'$\pm$'+str(std_total_deferred_cost_k),
 						   str(expected_total_cost_adp)+'$\pm$'+str(std_total_cost_adp),
 						   str(expected_total_cost_k)+'$\pm$'+str(std_total_cost_k),
 						   str(expected_taskload_human_adp)+'$\pm$'+str(std_taskload_human_adp),
@@ -158,7 +179,7 @@ def plot_human_perf_vs_taskload(beta, result_path):
 if __name__=='__main__':
       
 	result_path = 'results/'
-	num_tasks_per_batch=40
+	num_tasks_per_batch=20
 	betas = [0.3,0.5,0.7,0.9]
 
 	create_performance_table(betas,num_tasks_per_batch, result_path)

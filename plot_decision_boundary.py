@@ -18,22 +18,22 @@ def plot_decision_boundary(result_path, beta,plot_posterior=False):
 
     num_tasks_per_batch = 20
 
-    mu = 0.003
-    lamda = 0.005
+    mu = 0.03
+    lamda = 0.05
 
-    d_0 = 5
+    d_0 = 3
 
     H0 = 0
 
     H1 = d_0
 
-    prior = [0.7,0.3]
+    prior = [0.8,0.2]
 
     #params["d_0"]
 
 
-    sigma_h = 1.5
-    sigma_a = 3.5
+    sigma_h = 1.0
+    sigma_a = 1.5
 
     ctp = 0#params["ctp"]
     ctn = 0#params["ctn"]

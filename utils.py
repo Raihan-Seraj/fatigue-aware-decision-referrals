@@ -100,6 +100,8 @@ class Utils(object):
 
         F_next = R_t + (1 - R_t) * (1 - np.exp(-self.lamda * w_t))
 
+        F_next=0.4
+
         return F_next
 
 
@@ -266,9 +268,12 @@ class Utils(object):
 
     def per_step_cost(self,F_t, batched_posterior_h1, deferred_task_indices):
 
-        total_indices = [i for i in range(self.num_tasks_per_batch)]
+        total_indices = list(range(20))#[i for i in range(self.num_tasks_per_batch)]
 
-        auto_indices = [i for i in total_indices if i not in deferred_task_indices]
+        auto_indices = list(set(total_indices)-set(deferred_task_indices))
+       
+
+    
 
         w_t = len(deferred_task_indices)
 
@@ -432,3 +437,26 @@ class Utils(object):
 
 
    
+    def compute_kesav_policy(self,F_t, batched_posterior_h0, batched_posterior_h1):
+
+        total_num_tasks = len(batched_posterior_h0)
+
+        all_gbar_w = []
+        all_human_indices = []
+        for w_t in range(total_num_tasks+1):
+
+            human_allocation_indices, G_bar_w = self.algorithm_1_per_wl(batched_posterior_h0,batched_posterior_h1,w_t,F_t)
+
+            all_gbar_w.append(G_bar_w)
+            all_human_indices.append(human_allocation_indices)
+        
+        max_idx = np.argmax(all_gbar_w)
+
+        w_t_star = max_idx 
+
+        final_human_indices = all_human_indices[max_idx]
+
+        return w_t_star, final_human_indices
+
+
+
