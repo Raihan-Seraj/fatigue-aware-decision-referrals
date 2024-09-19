@@ -100,8 +100,6 @@ class Utils(object):
 
         F_next = R_t + (1 - R_t) * (1 - np.exp(-self.lamda * w_t))
 
-        F_next=0.4
-
         return F_next
 
 
@@ -167,8 +165,8 @@ class Utils(object):
     ## taking max at the denominator for stability 
     def tau(self,w_t, F_t):
 
-        tau = self.d_0 * (1 - self.beta * min((w_t / self.w_0),1) - (1 - self.beta) * F_t) / 2 + (
-            self.sigma_h**2 / max(self.d_0 * (1 - self.beta * min((w_t / self.w_0),1) - (1 - self.beta) * F_t),1e-20)
+        tau = self.d_0 * ((1-F_t)*np.exp(-self.beta*F_t)) / 2 + (
+            self.sigma_h**2 / max(self.d_0*(1-F_t)*np.exp(-self.beta*F_t),1e-20)
         ) * np.log((self.cfp - self.ctn) * self.prior[0] / ((self.cfn - self.ctp) * self.prior[1]))
 
         return tau
@@ -195,7 +193,7 @@ class Utils(object):
 
         # computing true positive probability of the human
         P_h_tp = 1 - norm.cdf(
-            (tau_wf - self.d_0 * (1 - self.beta * min((w_t / self.w_0),1) - (1 - self.beta) * F_t)) / self.sigma_h,
+            (tau_wf - self.d_0 * (1-F_t)*np.exp(-self.beta*F_t)) / self.sigma_h,
             loc=0,
             scale=1,
         )
@@ -268,7 +266,7 @@ class Utils(object):
 
     def per_step_cost(self,F_t, batched_posterior_h1, deferred_task_indices):
 
-        total_indices = list(range(20))#[i for i in range(self.num_tasks_per_batch)]
+        total_indices = list(range(self.num_tasks_per_batch))#[i for i in range(self.num_tasks_per_batch)]
 
         auto_indices = list(set(total_indices)-set(deferred_task_indices))
        
@@ -293,7 +291,7 @@ class Utils(object):
         # computing true positive probability of the human
 
         P_h_tp = 1 - norm.cdf(
-            (tau_wf - self.d_0 * (1 - self.beta * min((w_t / self.w_0),1) - (1 - self.beta) * F_t)) / self.sigma_h,
+            (tau_wf - self.d_0 * (1 - F_t)*np.exp(-self.beta*F_t)) / self.sigma_h,
             loc=0,
             scale=1,
         )

@@ -180,6 +180,6 @@ if __name__=='__main__':
       
 	result_path = 'results/'
 	num_tasks_per_batch=20
-	betas = [0.3,0.5,0.7,0.9]
+	betas = [0.5]
 
 	create_performance_table(betas,num_tasks_per_batch, result_path)

@@ -16,7 +16,7 @@ matplotlib.use('Agg')
 class Evaluations(object):
     def __init__(self):
 
-        self.run_info = wandb.init(project="Approximate-Dyn-Prog-Evaluation")
+        self.run_info = wandb.init(project="Example-1")
 
 
 
@@ -243,13 +243,15 @@ class Evaluations(object):
 
                 wl_adp_new, deferred_idx_adp_new = self.compute_adp_solution(batched_posterior_h0,batched_posterior_h1,F_adp_new, V_bar,ut_new)
 
-                self.run_info.log({'Run-'+str(run)+'-t-'+str(t)+'-batched_obs':batched_obs,
-                                   'Run-'+str(run)+'-t-'+str(t)+'-batched_posterior_h0':batched_posterior_h0,
-                                   'Run-'+str(run)+'-t-'+str(t)+'-batched_posterior_h1':batched_posterior_h1,
-                                   'Run-'+str(run)+'-t-'+str(t)+'-workload_K':wl_k,
-                                   'Run-'+str(run)+'-t-'+str(t)+'-workload_ADP':wl_adp,
-                                   'Run-'+str(run)+'-t-'+str(t)+'-deferred_idx_K':deferred_idx_k,
-                                   'Run-'+str(run)+'-t-'+str(t)+'-deferred_idx_ADP':deferred_idx_adp})
+                # self.run_info.log({'Run-'+str(run)+'-t-'+str(t)+'-batched_obs':batched_obs,
+                #                    'Run-'+str(run)+'-t-'+str(t)+'-batched_posterior_h0':batched_posterior_h0,
+                #                    'Run-'+str(run)+'-t-'+str(t)+'-batched_posterior_h1':batched_posterior_h1,
+                #                    'Run-'+str(run)+'-t-'+str(t)+'-workload_K':wl_k,
+                #                    'Run-'+str(run)+'-t-'+str(t)+'-workload_ADP':wl_adp,
+                #                    'Run-'+str(run)+'-t-'+str(t)+'-deferred_idx_K':deferred_idx_k,
+                #                    'Run-'+str(run)+'-t-'+str(t)+'-deferred_idx_ADP':deferred_idx_adp})
+
+                
 
                 hum_wl_adp[t]=wl_adp
                 hum_wl_k[t]=wl_k
@@ -262,19 +264,23 @@ class Evaluations(object):
                 a_cost_adp_new, h_cost_adp_new, def_cost_adp_new = ut_new.per_step_cost(F_adp_new,batched_posterior_h1,deferred_idx_adp_new)
                 
 
-                self.run_info.log({'Run-'+str(run)+'-t-'+str(t)+'-AutoCost-K':a_cost_k,
-                                   'Run-'+str(run)+'-t-'+str(t)+'-AutoCost-ADP':a_cost_adp,
-                                   'Run-'+str(run)+'-t-'+str(t)+'-HumCost-K':h_cost_k,
-                                   'Run-'+str(run)+'-t-'+str(t)+'-HumCost-ADP':h_cost_adp,
-                                   'Run-'+str(run)+'-t-'+str(t)+'-DefferedCost-K':def_cost_k,
-                                   'Run-'+str(run)+'-t-'+str(t)+'-DeferredCost-ADP':def_cost_adp,
-                                   'Run-'+str(run)+'-t-'+str(t)+'-Fatigue-K':F_k,
-                                   'Run-'+str(run)+'-t-'+str(t)+'-Fatigue-ADP':F_adp
-                                   })
+                # self.run_info.log({'Run-'+str(run)+'-t-'+str(t)+'-AutoCost-K':a_cost_k,
+                #                    'Run-'+str(run)+'-t-'+str(t)+'-AutoCost-ADP':a_cost_adp,
+                #                    'Run-'+str(run)+'-t-'+str(t)+'-HumCost-K':h_cost_k,
+                #                    'Run-'+str(run)+'-t-'+str(t)+'-HumCost-ADP':h_cost_adp,
+                #                    'Run-'+str(run)+'-t-'+str(t)+'-DefferedCost-K':def_cost_k,
+                #                    'Run-'+str(run)+'-t-'+str(t)+'-DeferredCost-ADP':def_cost_adp,
+                #                    'Run-'+str(run)+'-t-'+str(t)+'-Fatigue-K':F_k,
+                #                    'Run-'+str(run)+'-t-'+str(t)+'-Fatigue-ADP':F_adp
+                #                    })
 
 
 
-                
+                self.run_info.log({'Steps-Run-'+str(run): t, 'Batched-Obs':batched_obs, 'Batched-Posterior-H0': batched_posterior_h0,
+                                   'Batched-Posterior-H1':batched_posterior_h1, 'Workload-K':wl_k, 'Workload-ADP':wl_adp,
+                                   'Deferred-IDX-K':deferred_idx_k, 'Deferred-IDX-ADP':deferred_idx_adp, 'Fatigue-K':F_k, 'Fatigue-ADP':F_adp,
+                                   'AutoCost-K':a_cost_k, 'AutoCost-ADP':a_cost_adp, 'HumCost-K':h_cost_k, 'HumCost-ADP':h_cost_adp, 
+                                   'DeferredCost-K':def_cost_k, 'DeferredCost-ADP':def_cost_adp})
 
                 auto_cost_adp+=a_cost_adp
                 human_cost_adp+=h_cost_adp
@@ -301,10 +307,15 @@ class Evaluations(object):
             all_human_wl_adp['Run-'+str(run+1)]=hum_wl_adp
             all_human_wl_k['Run-'+str(run+1)]=hum_wl_k
 
-            self.run_info.log({'Run-'+str(run)+'-TotalAutoCost-K':auto_cost_k,
+            self.run_info.log({'Run':run,'Run-'+str(run)+'-TotalAutoCost-K':auto_cost_k,
                                'Run-'+str(run)+'-TotalAutoCost-ADP':auto_cost_adp,
                                'Run-'+str(run)+'-TotalHumCost-K':human_cost_k,
-                               'Run-'+str(run)+'-TotalHumCost-ADP':human_cost_adp})
+                               'Run-'+str(run)+'-TotalHumCost-ADP':human_cost_adp,
+                               'Run-'+str(run)+'-TotalCost-K':human_cost_k+auto_cost_k+deferred_cost_k,
+                               'Run-'+str(run)+'-TotalCost-ADP':human_cost_adp+auto_cost_adp+deferred_cost_adp})
+            
+
+            
 
 
 
@@ -321,7 +332,8 @@ class Evaluations(object):
             all_human_cost_adp_new[run] = human_cost_adp_new
             all_deferred_cost_adp_new[run] = deferred_cost_adp_new
             
-                
+
+             
 
         path1 = result_path+'num_tasks '+str(num_tasks_per_batch)+'/plot_analysis/'
         if not os.path.exists(path1):
@@ -388,20 +400,13 @@ class Evaluations(object):
 
 
 
-    def compute_performance(self,betas,result_path,lamda_new, simulation_time,num_tasks_per_batch, num_runs=10):
+    def compute_performance(self,beta,result_path,lamda_new, simulation_time,num_tasks_per_batch, num_runs=10):
 
-
-        inputs = [(beta,result_path,lamda_new,simulation_time, num_runs, num_tasks_per_batch) for beta in betas]                 
+               
         
+        self.compute_perf_multiprocess(beta,result_path,lamda_new,simulation_time, num_runs, num_tasks_per_batch)
 
         
-        with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
-            pool.starmap(self.compute_perf_multiprocess, inputs)
-
-    
- 
-
-
 
 
 
@@ -617,38 +622,5 @@ class Evaluations(object):
         return
 
    
-
-
-# def main():
-
-  
-    
-#     betas = [0.3,0.5,0.7,0.9]
-
-#     result_path = "results/"
-#     simulation_time = 20
-#     num_tasks_per_batch=20
-#     lamda_new=0.01
-
-#     inputs = [(beta,result_path,lamda_new,simulation_time,num_tasks_per_batch) for beta in betas]
-    
-#     # for beta in betas:
-#     #     run_perf_eval(beta, result_path,lamda_new,simulation_time,num_tasks_per_batch)
-
-#     with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
-#         pool.starmap(run_perf_eval, inputs)
-
-   
-    
-#     compute_performance(betas, result_path,lamda_new,simulation_time,num_tasks_per_batch)
-
-        
-
-
-# if __name__=='__main__':
-
-#     main()
-
-        
 
 

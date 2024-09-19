@@ -18,10 +18,10 @@ def plot_decision_boundary(result_path, beta,plot_posterior=False):
 
     num_tasks_per_batch = 20
 
-    mu = 0.03
-    lamda = 0.05
+    mu = 0.05
+    lamda = 0.07
 
-    d_0 = 3
+    d_0 = 5
 
     H0 = 0
 
@@ -33,7 +33,7 @@ def plot_decision_boundary(result_path, beta,plot_posterior=False):
 
 
     sigma_h = 1.0
-    sigma_a = 1.5
+    sigma_a = 2.5
 
     ctp = 0#params["ctp"]
     ctn = 0#params["ctn"]
@@ -142,14 +142,14 @@ def plot_decision_boundary(result_path, beta,plot_posterior=False):
 
 if __name__=='__main__':
 
-    betas = [0.3,0.5,0.7,0.9]
+    beta = 5
 
 
     result_path = 'results/'
 
-    for beta in betas:
+    
 
-        plot_decision_boundary(result_path, beta,False)
+    plot_decision_boundary(result_path, beta,False)
 
 
 
