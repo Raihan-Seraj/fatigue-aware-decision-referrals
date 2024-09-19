@@ -285,7 +285,7 @@ def main():
 
     lamda_new = 0.01
 
-    inputs_eval = [(beta,result_path,lamda_new,T,num_tasks_per_batch) for beta in betas]
+
 
     print("Running evaluation for the computed value function ")
 
