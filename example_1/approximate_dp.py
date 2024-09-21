@@ -9,6 +9,7 @@ import multiprocessing
 import pickle
 import wandb
 import pandas as pd
+import argparse
 
 
 '''
@@ -117,7 +118,7 @@ def run_dp_parallel_beta(num_tasks_per_batch, mu, lamda, w_0, sigma_a, H0, H1, p
     
     ut = Utils(num_tasks_per_batch, mu, lamda, w_0, sigma_a, H0, H1, prior, d_0, beta, sigma_h, ctp, ctn, cfp, cfn, cm, num_bins_fatigue)
 
-    run_info = wandb.init(project="Example 1",name="beta "+str(beta))
+    run_info = wandb.init(project="Example 1",name="beta "+str(beta)+' mu '+str(mu)+' lambda '+str(lamda))
     
 
     param_values = {
@@ -165,34 +166,16 @@ def run_dp_parallel_beta(num_tasks_per_batch, mu, lamda, w_0, sigma_a, H0, H1, p
     run_info.config.update(param_values)
 
 
-    path1 = result_path
+    path_name = result_path + 'num_tasks '+str(num_tasks_per_batch)+'/beta '+str(beta)+'/mu_'+str(mu)+'_lambda_'+str(lamda)+'/'
 
-    if not os.path.exists(path1):
+    if not os.path.exists(path_name):
         try:
-            os.makedirs(path1, exist_ok=True)
+            os.makedirs(path_name, exist_ok=True)
         except FileExistsError:
             pass
 
 
-    path2 = path1 + "num_tasks " + str(num_tasks_per_batch)
-
-    if not os.path.exists(path2):
-
-        try:
-            os.makedirs(path2, exist_ok=True)
-        except FileExistsError:
-            pass
-
-    path3 = path2 + "/beta " + str(beta) + "/"
-
-    if not os.path.exists(path3):
-        
-        try:
-            os.makedirs(path3,exist_ok=True)	
-        except FileExistsError:
-            pass
-    path_name = path3
-
+    
     with open(path_name + "params.json", "w") as json_file:
         json.dump(param_values, json_file, indent=4)
 
@@ -230,8 +213,18 @@ The main function
 '''
 def main():
 
+    parser = argparse.ArgumentParser(description="Approximate Dynamic Program parameters")
+
+    parser.add_argument('--beta', type=int, default= 2, help='The effect of fatigue on the human observation channel')
+    parser.add_argument('--mu', type=float, default=0.05,  help='Decay rate of fatigue')
+    parser.add_argument('--lamda', type=float, default=0.07,  help='Growth rate of fatigue')
+    parser.add_argument('--num_expectation_samples', type=int, default=10, help='Number of expectation samples to take for the approximate Dynamic Program')
+    parser.add_argument('--horizon', type=int, default=20, help='The length of the horizon')
+
+    args = parser.parse_args()
+
     
-    beta= 2
+    beta= args.beta
 
     # defining the value of d_0
     d_0 = 5
@@ -249,14 +242,14 @@ def main():
     sigma_h = 1.0
 
     # total time for which the system will run 
-    T = 20
+    T = args.horizon
 
     # The threshold value 
     w_0 = 15
 
     # number of bins used for the discretization of fatigue 
     num_bins_fatigue = 10
-    num_expectation_samples = 20
+    num_expectation_samples = args.num_expectation_samples
 
     cfp = 1#np.random.uniform(8, 12)
     cfn = 1#np.random.uniform(8, 12)
@@ -265,12 +258,14 @@ def main():
     cm = 0
 
     # fatigue recovery rate
-    mu = 0.05
+    mu = args.mu
 
     # fatigue growth rate
-    lamda = 0.07
+    lamda = args.lamda
 
     result_path = "results/"
+
+    
     
    
     run_dp_parallel_beta(num_tasks_per_batch, mu, lamda, w_0, sigma_a, H0, H1, prior, d_0, beta, sigma_h, ctp, ctn, cfp, cfn, cm, num_bins_fatigue, T, num_expectation_samples,result_path)
@@ -281,7 +276,7 @@ def main():
     
 
     #Running evaluation 
-    EVAL = Evaluations()
+    EVAL = Evaluations(args)
 
     lamda_new = 0.01
 

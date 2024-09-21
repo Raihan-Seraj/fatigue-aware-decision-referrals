@@ -14,9 +14,10 @@ matplotlib.use('Agg')
 
 
 class Evaluations(object):
-    def __init__(self):
+    def __init__(self,args):
 
         self.run_info = wandb.init(project="Example-1")
+        self.args = args
 
 
 
@@ -139,11 +140,11 @@ class Evaluations(object):
 
     def compute_perf_multiprocess(self,beta,result_path, lamda_new, simulation_time, num_runs,num_tasks_per_batch):
 
-        self.run_info.name= "Beta "+str(beta)
+        self.run_info.name= "beta "+str(beta)+' mu '+str(self.args.mu)+' lambda '+str(self.args.lamda)
 
         print("Computing peformance with beta = "+str(beta)+'\n')
 
-        param_path = result_path+'num_tasks '+str(num_tasks_per_batch)+'/beta '+str(beta)+'/params.json'
+        param_path = result_path + 'num_tasks '+str(num_tasks_per_batch)+'/beta '+str(beta)+'/mu_'+str(self.args.mu)+'_lambda_'+str(self.args.lamda)+'/params.json'
 
         with open(param_path,'r') as file:
             params = json.load(file)
@@ -186,7 +187,7 @@ class Evaluations(object):
         ut_k = Utils(num_tasks_per_batch, mu, lamda, w_0, sigma_a, H0, H1, prior, d_0, beta, sigma_h, ctp, ctn, cfp, cfn,cm, num_bins_fatigue)
 
 
-        V_bar = np.load(result_path+'num_tasks '+str(num_tasks_per_batch)+'/beta '+str(beta)+'/V_bar.npy')
+        V_bar = np.load(result_path + 'num_tasks '+str(num_tasks_per_batch)+'/beta '+str(beta)+'/mu_'+str(self.args.mu)+'_lambda_'+str(self.args.lamda)+'/V_bar.npy')
 
         all_auto_cost_k = np.zeros(num_runs)
         all_human_cost_k = np.zeros(num_runs)
@@ -335,62 +336,62 @@ class Evaluations(object):
 
              
 
-        path1 = result_path+'num_tasks '+str(num_tasks_per_batch)+'/plot_analysis/'
+        path1 = result_path + 'num_tasks '+str(num_tasks_per_batch)+'/beta '+str(beta)+'/mu_'+str(self.args.mu)+'_lambda_'+str(self.args.lamda)+'/plot_analysis/cost_comparison/'
         if not os.path.exists(path1):
             try:
                 os.makedirs(path1,exist_ok=True)
             except FileExistsError:
                 pass
         
-        path2 = path1+'cost_comparison/'
+        # path2 = path1+'cost_comparison/'
 
-        if not os.path.exists(path2):
-            try:
-                os.makedirs(path2,exist_ok=True)
-            except FileExistsError:
-                pass
+        # if not os.path.exists(path2):
+        #     try:
+        #         os.makedirs(path2,exist_ok=True)
+        #     except FileExistsError:
+        #         pass
 
-        path3 = path2+'beta '+str(beta)+'/'
+        # path3 = path2+'beta '+str(beta)+'/'
 
-        if not os.path.exists(path3):
-            try:
-                os.makedirs(path3,exist_ok=True)
-            except FileExistsError:
-                pass
+        # if not os.path.exists(path3):
+        #     try:
+        #         os.makedirs(path3,exist_ok=True)
+        #     except FileExistsError:
+        #         pass
 
 
         
-        with open(path3 + 'all_human_wl_adp.pkl','wb') as file:
+        with open(path1 + 'all_human_wl_adp.pkl','wb') as file:
             pickle.dump(all_human_wl_adp,file)
 
         
-        with open(path3 + 'all_human_wl_k.pkl','wb') as file2:
+        with open(path1 + 'all_human_wl_k.pkl','wb') as file2:
             pickle.dump(all_human_wl_k,file2)
         
 
-        with open(path3 + 'all_mega_batch.pkl','wb') as file3:
+        with open(path1 + 'all_mega_batch.pkl','wb') as file3:
             pickle.dump(all_mega_batch,file3)
 
         
-        np.save(path3+'all_auto_cost_adp.npy',all_auto_cost_adp)
+        np.save(path1+'all_auto_cost_adp.npy',all_auto_cost_adp)
 
-        np.save(path3+'all_human_cost_adp.npy',all_human_cost_adp)
+        np.save(path1+'all_human_cost_adp.npy',all_human_cost_adp)
 
-        np.save(path3+'all_deferred_cost_adp.npy',all_deferred_cost_adp)
+        np.save(path1+'all_deferred_cost_adp.npy',all_deferred_cost_adp)
 
         
-        np.save(path3+'all_auto_cost_adp_new.npy',all_auto_cost_adp_new)
+        np.save(path1+'all_auto_cost_adp_new.npy',all_auto_cost_adp_new)
 
-        np.save(path3+'all_human_cost_adp_new.npy',all_human_cost_adp_new)
+        np.save(path1+'all_human_cost_adp_new.npy',all_human_cost_adp_new)
 
-        np.save(path3+'all_deferred_cost_adp_new.npy',all_deferred_cost_adp_new)
+        np.save(path1+'all_deferred_cost_adp_new.npy',all_deferred_cost_adp_new)
 
 
-        np.save(path3+'all_auto_cost_k.npy',all_auto_cost_k)
+        np.save(path1+'all_auto_cost_k.npy',all_auto_cost_k)
 
-        np.save(path3+'all_human_cost_k.npy',all_human_cost_k)
+        np.save(path1+'all_human_cost_k.npy',all_human_cost_k)
 
-        np.save(path3+'all_deferred_cost_k.npy',all_deferred_cost_k)
+        np.save(path1+'all_deferred_cost_k.npy',all_deferred_cost_k)
 
 
         self.run_info.finish()
@@ -418,7 +419,7 @@ class Evaluations(object):
 
         ## loading the parameters
 
-        param_path = result_path+'num_tasks '+str(num_tasks_per_batch)+'/beta '+str(beta)+'/params.json'
+        param_path = result_path+'num_tasks '+str(num_tasks_per_batch)+'/beta '+str(beta)+'/mu_'+str(self.args.mu)+'_lambda_'+str(self.args.lamda)+'/params.json'
 
         with open(param_path,'r') as file:
             params = json.load(file)
@@ -462,7 +463,7 @@ class Evaluations(object):
         ut_new = Utils(num_tasks_per_batch, mu, lamda_new, w_0, sigma_a, H0, H1, prior, d_0, beta, sigma_h, ctp, ctn, cfp, cfn, cm, num_bins_fatigue)
 
 
-        V_bar = np.load(result_path+'num_tasks '+str(num_tasks_per_batch)+'/beta '+str(beta)+'/V_bar.npy')
+        V_bar = np.load(result_path+ 'num_tasks '+str(num_tasks_per_batch)+'/beta '+str(beta)+'/mu_'+str(mu)+'_lambda_'+str(lamda)+'/V_bar.npy')
 
 
         ## initial fatigue is for kesav 0
@@ -540,34 +541,26 @@ class Evaluations(object):
         
         
         
-        path1 = result_path+'num_tasks '+str(num_tasks_per_batch)+'/plot_analysis/'
+        path_name = result_path+ 'num_tasks '+str(num_tasks_per_batch)+'/beta '+str(beta)+'/mu_'+str(self.args.mu)+'_lambda_'+str(self.args.lamda)+'/plot_analysis/'
 
-        if not os.path.exists(path1):
+        if not os.path.exists(path_name):
             try:
-                os.makedirs(path1,exist_ok=True)
-            except FileExistsError:
-                pass
-        
-        path2 = path1+'beta '+str(beta)+'/'
-
-        if not os.path.exists(path2):
-            try:
-                os.makedirs(path2,exist_ok=True)
-            
+                os.makedirs(path_name,exist_ok=True)
             except FileExistsError:
                 pass
         
         
-        with open(path2+'all_fatigue_k.pkl','wb') as file1:
+        
+        with open(path_name+'all_fatigue_k.pkl','wb') as file1:
             pickle.dump(all_fatigue_kesav,file1)
 
-        with open(path2+'all_fatigue_adp.pkl','wb') as file2:
+        with open(path_name+'all_fatigue_adp.pkl','wb') as file2:
             pickle.dump(all_fatigue_adp,file2)
         
-        with open(path2+'all_taskload_k.pkl','wb') as file3:
+        with open(path_name+'all_taskload_k.pkl','wb') as file3:
             pickle.dump(all_taskload_kesav,file3)
         
-        with open(path2+'all_taskload_adp.pkl','wb') as file4:
+        with open(path_name+'all_taskload_adp.pkl','wb') as file4:
             pickle.dump(all_taskload_adp,file4)
 
         
@@ -598,7 +591,7 @@ class Evaluations(object):
         plt.xlabel('Time')
         plt.ylabel('Fatigue Level')
         plt.legend()
-        plt.savefig(path2+'beta_'+str(beta)+'_fatigue.pdf')
+        plt.savefig(path_name+'beta_'+str(beta)+'_fatigue.pdf')
 
         plt.clf()
         plt.close()
@@ -614,7 +607,7 @@ class Evaluations(object):
         plt.xlabel('Time')
         plt.ylabel('Workload level')
         plt.legend()
-        plt.savefig(path2+'beta_'+str(beta)+'_workload.pdf')
+        plt.savefig(path_name+'beta_'+str(beta)+'_workload.pdf')
 
         plt.clf()
         plt.close()
