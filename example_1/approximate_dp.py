@@ -231,7 +231,7 @@ The main function
 def main():
 
     
-    beta= 5
+    beta= 2
 
     # defining the value of d_0
     d_0 = 5

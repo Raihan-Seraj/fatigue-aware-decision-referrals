@@ -243,13 +243,13 @@ class Evaluations(object):
 
                 wl_adp_new, deferred_idx_adp_new = self.compute_adp_solution(batched_posterior_h0,batched_posterior_h1,F_adp_new, V_bar,ut_new)
 
-                # self.run_info.log({'Run-'+str(run)+'-t-'+str(t)+'-batched_obs':batched_obs,
-                #                    'Run-'+str(run)+'-t-'+str(t)+'-batched_posterior_h0':batched_posterior_h0,
-                #                    'Run-'+str(run)+'-t-'+str(t)+'-batched_posterior_h1':batched_posterior_h1,
-                #                    'Run-'+str(run)+'-t-'+str(t)+'-workload_K':wl_k,
-                #                    'Run-'+str(run)+'-t-'+str(t)+'-workload_ADP':wl_adp,
-                #                    'Run-'+str(run)+'-t-'+str(t)+'-deferred_idx_K':deferred_idx_k,
-                #                    'Run-'+str(run)+'-t-'+str(t)+'-deferred_idx_ADP':deferred_idx_adp})
+                self.run_info.log({'Run-'+str(run)+'-t-'+str(t)+'-batched_obs':batched_obs,
+                                   'Run-'+str(run)+'-t-'+str(t)+'-batched_posterior_h0':batched_posterior_h0,
+                                   'Run-'+str(run)+'-t-'+str(t)+'-batched_posterior_h1':batched_posterior_h1,
+                                   'Run-'+str(run)+'-t-'+str(t)+'-workload_K':wl_k,
+                                   'Run-'+str(run)+'-t-'+str(t)+'-workload_ADP':wl_adp,
+                                   'Run-'+str(run)+'-t-'+str(t)+'-deferred_idx_K':deferred_idx_k,
+                                   'Run-'+str(run)+'-t-'+str(t)+'-deferred_idx_ADP':deferred_idx_adp})
 
                 
 
@@ -264,15 +264,15 @@ class Evaluations(object):
                 a_cost_adp_new, h_cost_adp_new, def_cost_adp_new = ut_new.per_step_cost(F_adp_new,batched_posterior_h1,deferred_idx_adp_new)
                 
 
-                # self.run_info.log({'Run-'+str(run)+'-t-'+str(t)+'-AutoCost-K':a_cost_k,
-                #                    'Run-'+str(run)+'-t-'+str(t)+'-AutoCost-ADP':a_cost_adp,
-                #                    'Run-'+str(run)+'-t-'+str(t)+'-HumCost-K':h_cost_k,
-                #                    'Run-'+str(run)+'-t-'+str(t)+'-HumCost-ADP':h_cost_adp,
-                #                    'Run-'+str(run)+'-t-'+str(t)+'-DefferedCost-K':def_cost_k,
-                #                    'Run-'+str(run)+'-t-'+str(t)+'-DeferredCost-ADP':def_cost_adp,
-                #                    'Run-'+str(run)+'-t-'+str(t)+'-Fatigue-K':F_k,
-                #                    'Run-'+str(run)+'-t-'+str(t)+'-Fatigue-ADP':F_adp
-                #                    })
+                self.run_info.log({'Run-'+str(run)+'-t-'+str(t)+'-AutoCost-K':a_cost_k,
+                                   'Run-'+str(run)+'-t-'+str(t)+'-AutoCost-ADP':a_cost_adp,
+                                   'Run-'+str(run)+'-t-'+str(t)+'-HumCost-K':h_cost_k,
+                                   'Run-'+str(run)+'-t-'+str(t)+'-HumCost-ADP':h_cost_adp,
+                                   'Run-'+str(run)+'-t-'+str(t)+'-DefferedCost-K':def_cost_k,
+                                   'Run-'+str(run)+'-t-'+str(t)+'-DeferredCost-ADP':def_cost_adp,
+                                   'Run-'+str(run)+'-t-'+str(t)+'-Fatigue-K':F_k,
+                                   'Run-'+str(run)+'-t-'+str(t)+'-Fatigue-ADP':F_adp
+                                   })
 
 
 
