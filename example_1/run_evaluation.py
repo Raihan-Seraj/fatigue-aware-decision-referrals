@@ -16,7 +16,7 @@ wandb.require("legacy-service")
 class Evaluations(object):
     def __init__(self,args):
 
-        self.run_info = wandb.init(project="Example-1",settings=wandb.Settings(start_method="fork"),)
+        self.run_info = wandb.init(project="Example 1",settings=wandb.Settings(start_method="fork"),)
         self.args = args
 
 
