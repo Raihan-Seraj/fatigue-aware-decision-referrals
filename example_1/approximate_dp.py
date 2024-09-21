@@ -10,7 +10,7 @@ import pickle
 import wandb
 import pandas as pd
 import argparse
-
+wandb.require("legacy-service")
 
 '''
 function that computes the approximate dynamic programming algorithm
@@ -118,7 +118,7 @@ def run_dp_parallel_beta(num_tasks_per_batch, mu, lamda, w_0, sigma_a, H0, H1, p
     
     ut = Utils(num_tasks_per_batch, mu, lamda, w_0, sigma_a, H0, H1, prior, d_0, beta, sigma_h, ctp, ctn, cfp, cfn, cm, num_bins_fatigue)
 
-    run_info = wandb.init(project="Example 1",name="beta "+str(beta)+' mu '+str(mu)+' lambda '+str(lamda))
+    run_info = wandb.init(project="Example 1",name="beta "+str(beta)+' mu '+str(mu)+' lambda '+str(lamda),settings=wandb.Settings(start_method="fork"))
     
 
     param_values = {
