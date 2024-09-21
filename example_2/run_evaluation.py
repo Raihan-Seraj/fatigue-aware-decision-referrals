@@ -399,7 +399,7 @@ class Evaluations(object):
 
 
 
-    def compute_performance(self,alpha, beta,result_path,lamda_new, simulation_time,num_tasks_per_batch, num_runs=10):
+    def compute_performance(self,alpha, beta,result_path,lamda_new, simulation_time,num_tasks_per_batch, num_runs=500):
 
                
         
