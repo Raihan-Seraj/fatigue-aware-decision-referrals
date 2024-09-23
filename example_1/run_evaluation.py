@@ -429,7 +429,7 @@ class Evaluations(object):
 
         mega_obs = [ut.get_auto_obs() for _ in range(self.args.horizon)]
         
-        for t in tqdm(range(self.args.horizon)):
+        for t in range(self.args.horizon):
 
             fatigue_evolution_kesav.append(F_k)
             fatigue_evolution_adp.append(F_adp)
@@ -470,7 +470,7 @@ class Evaluations(object):
         all_taskload_kesav = []
         all_taskload_adp = []
 
-        for run in range(num_runs): 
+        for run in tqdm(range(num_runs)): 
         
             fatigue_evolution_kesav,fatigue_evolution_adp,taskload_evolution_kesav, taskload_evolution_adp = self.run_evaluation()
 
