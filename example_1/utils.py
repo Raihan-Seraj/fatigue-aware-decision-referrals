@@ -60,27 +60,29 @@ class Utils(object):
     '''
 
 
-    def __init__(self,num_tasks_per_batch, mu, lamda,w_0,sigma_a,H0,H1,prior,d_0,beta,sigma_h,ctp,ctn,cfp,cfn,cm,num_bins_fatigue):
+    def __init__(self,args,H0,H1):
+        
+        self.args = args
 
-        self.num_tasks_per_batch = num_tasks_per_batch
-        self.mu  = mu
-        self.lamda = lamda 
-        self.w_0 = w_0
-        self.sigma_a = sigma_a
+        self.num_tasks_per_batch = self.args.num_tasks_per_batch
+        self.mu  = self.args.mu
+        self.lamda = self.args.lamda 
+        self.w_0 = self.args.w_0
+        self.sigma_a = self.args.sigma_a
         self.H0 = H0
         self.H1 = H1
-        self.prior = prior 
-        self.d_0 = d_0
-        self.beta = beta
-        self.sigma_h = sigma_h
-        self.ctp = ctp 
-        self.ctn = ctn 
-        self.cfp = cfp 
-        self.cfn = cfn
-        self.cm = cm
-        self.num_bins_fatigue = num_bins_fatigue 
+        self.prior = self.args.prior 
+        self.d_0 = self.args.d_0
+        self.beta = self.args.beta
+        self.sigma_h = self.args.sigma_h
+        self.ctp = self.args.ctp 
+        self.ctn = self.args.ctn 
+        self.cfp = self.args.cfp 
+        self.cfn = self.args.cfn
+        self.cm = self.args.cm
+        self.num_bins_fatigue = self.args.num_bins_fatigue 
 
-        pass
+        
 
 
     

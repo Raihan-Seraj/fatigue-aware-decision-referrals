@@ -114,11 +114,32 @@ def approximate_dynamic_program(T, num_expectation_samples,ut):
 '''
 Function that runs dynamic program for different values of beta
 '''
-def run_dp_parallel_beta(num_tasks_per_batch, mu, lamda, w_0, sigma_a, H0, H1, prior, d_0, beta, sigma_h, ctp, ctn, cfp, cfn, cm, num_bins_fatigue, T, num_expectation_samples,result_path):
-    
-    ut = Utils(num_tasks_per_batch, mu, lamda, w_0, sigma_a, H0, H1, prior, d_0, beta, sigma_h, ctp, ctn, cfp, cfn, cm, num_bins_fatigue)
+def run_dp_parallel_beta(args, H0, H1):
 
-    run_info = wandb.init(project="Example 1",name="beta "+str(beta)+' mu '+str(mu)+' lambda '+str(lamda),settings=wandb.Settings(start_method="fork"))
+    num_tasks_per_batch = args.num_tasks_per_batch
+    mu = args.mu
+    lamda = args.lamda
+    w_0 = args.w_0
+    sigma_a = args.sigma_a
+    prior = args.prior
+    d_0 = args.d_0
+    beta = args.beta
+    sigma_h = args.sigma_h
+    ctp = args.ctp
+    ctn = args.ctn
+    cfp = args.cfp
+    cfn = args.cfn
+    cm = args.cm
+    num_bins_fatigue=args.num_bins_fatigue
+    num_expectation_samples = args.num_expectation_samples
+    T = args.horizon
+
+
+    
+    ut = Utils(args, H0,H1)
+
+    if args.use_wandb:
+        run_info = wandb.init(project="Example 1",name="beta "+str(beta)+' mu '+str(mu)+' lambda '+str(lamda),settings=wandb.Settings(start_method="fork"), model=args.wandb_sync)
     
 
     param_values = {
@@ -163,10 +184,12 @@ def run_dp_parallel_beta(num_tasks_per_batch, mu, lamda, w_0, sigma_a, H0, H1, p
 
     }
 
-    run_info.config.update(param_values)
+    if args.use_wandb:
+
+        run_info.config.update(param_values)
 
 
-    path_name = result_path + 'num_tasks '+str(num_tasks_per_batch)+'/beta '+str(beta)+'/mu_'+str(mu)+'_lambda_'+str(lamda)+'/'
+    path_name = args.results_path + 'num_tasks '+str(num_tasks_per_batch)+'/beta '+str(beta)+'/mu_'+str(mu)+'_lambda_'+str(lamda)+'/'
 
     if not os.path.exists(path_name):
         try:
@@ -197,7 +220,8 @@ def run_dp_parallel_beta(num_tasks_per_batch, mu, lamda, w_0, sigma_a, H0, H1, p
         pickle.dump(V_func_k_pol,file1)
     np.save(path_name + "V_bar_k_pol.npy", V_final_k_pol)
 
-    run_info.finish()
+    if args.use_wandb:
+        run_info.finish()
 
 
     return
@@ -213,66 +237,53 @@ The main function
 '''
 def main():
 
-    parser = argparse.ArgumentParser(description="Approximate Dynamic Program parameters")
+    parser = argparse.ArgumentParser(description="Approximate Dynamic Program parameters.")
 
-    parser.add_argument('--beta', type=int, default= 2, help='The effect of fatigue on the human observation channel')
-    parser.add_argument('--mu', type=float, default=0.05,  help='Decay rate of fatigue')
-    parser.add_argument('--lamda', type=float, default=0.07,  help='Growth rate of fatigue')
-    parser.add_argument('--num_expectation_samples', type=int, default=10, help='Number of expectation samples to take for the approximate Dynamic Program')
-    parser.add_argument('--horizon', type=int, default=20, help='The length of the horizon')
+    parser.add_argument('--beta', type=int, default= 2, help='The effect of fatigue on the human observation channel.')
+    parser.add_argument('--mu', type=float, default=0.05,  help='Decay rate of fatigue.')
+    parser.add_argument('--lamda', type=float, default=0.07,  help='Growth rate of fatigue.')
+    parser.add_argument('--num_expectation_samples', type=int, default=10, help='Number of expectation samples to take for the approximate Dynamic Program.')
+    parser.add_argument('--horizon', type=int, default=20, help='The length of the horizon.')
+    parser.add_argument('--d_0',type=float, default= 5, help='The value of d0 in the experiment.')
+    parser.add_argument('--prior',default=[0.8,0.2], help='A list containing the prior of [H0, H1].' )
+    parser.add_argument('--num_tasks_per_batch', type=int, default=20, help='The total number of tasks in a batch.')
+    parser.add_argument('--sigma_a',type=float, default=2.5, help='Automation observation channel variance.')
+    parser.add_argument('--sigma_h', type=float, default=1.0, help='Human observation channel variance.')
+    parser.add_argument('--w_0', type=int, default=15, help='The workload threshold beyond which fatigue recovery does not occur')
+    parser.add_argument('--num_bins_fatigue', type=int, default=10, help='The number of bins to be used to discretize fatigue')
+    
+    # Arguments associated with costs
+    parser.add_argument('--ctp',type=float, default=0, help='The cost associated with true positive rate')
+    parser.add_argument('--ctn',type=float, default=0, help='The cost associated with true negative value.')
+    parser.add_argument('--cfp', type=float, default=1.0, help='The cost associated with false positive rates')
+    parser.add_argument('--cfn', type=float, default=1.0, help='The cost associated with false negative rates.')
+    parser.add_argument('--cm', type=float, default=0.0, help='The cost associated with deferrals.')
+
+    parser.add_argument('--wandb_sync', type=str, default='offline',help='whether to sync wandb results to cloud.')
+    parser.add_argument('--use_wandb', type=bool, default=False, help='Whether to use wandb for logging')
+    
+    parser.add_argument('--results_path', type=str, default='results/', help='The name of the directory to save the results')
+
+    parser.add_argument('--run_eval_only', type=bool, default=False)
+    parser.add_argument('--num_eval_runs', type=int, default=10, help="Number of independent runs for monte carlo performance evaluation")
 
     args = parser.parse_args()
 
     
-    beta= args.beta
-
-    # defining the value of d_0
-    d_0 = 5
-    # defining the prior distribution of H_0 and H_1 respectively
-    prior = [0.8, 0.2]
-
-    # defining the value of H_0 and H_1
+        # defining the value of H_0 and H_1
     H0 = 0
-    H1 = d_0
-
-    # the number of tasks per batch
-    num_tasks_per_batch=20
-    # parameters used
-    sigma_a = 2.5
-    sigma_h = 1.0
-
-    # total time for which the system will run 
-    T = args.horizon
-
-    # The threshold value 
-    w_0 = 15
-
-    # number of bins used for the discretization of fatigue 
-    num_bins_fatigue = 10
-    num_expectation_samples = args.num_expectation_samples
-
-    cfp = 1#np.random.uniform(8, 12)
-    cfn = 1#np.random.uniform(8, 12)
-    ctp = 0#np.random.uniform(0, 2)
-    ctn = 0#np.random.uniform(0, 2)
-    cm = 0
-
-    # fatigue recovery rate
-    mu = args.mu
-
-    # fatigue growth rate
-    lamda = args.lamda
-
-    result_path = "results/"
+    H1 = args.d_0
 
     
     
+
+    
+    eval_flag = args.run_eval_only
+
+    if not eval_flag:
    
-    run_dp_parallel_beta(num_tasks_per_batch, mu, lamda, w_0, sigma_a, H0, H1, prior, d_0, beta, sigma_h, ctp, ctn, cfp, cfn, cm, num_bins_fatigue, T, num_expectation_samples,result_path)
+        run_dp_parallel_beta(args, H0, H1)
     
-    # with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
-    
-    #     pool.starmap(run_dp_parallel_beta, inputs)
     
 
     #Running evaluation 
@@ -285,7 +296,7 @@ def main():
     print("Running evaluation for the computed value function ")
 
  
-    EVAL.run_perf_eval(beta, result_path, lamda_new, T, num_tasks_per_batch)
+    EVAL.run_perf_eval()
 
     # with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
     #     pool.starmap(EVAL.run_perf_eval, inputs_eval)
@@ -295,7 +306,7 @@ def main():
 
     print("Computing the performance")
 
-    EVAL.compute_performance(beta, result_path, lamda_new, T, num_tasks_per_batch)
+    EVAL.compute_performance()
     
 
 
