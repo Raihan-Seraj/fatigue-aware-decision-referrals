@@ -16,8 +16,11 @@ wandb.require("legacy-service")
 class Evaluations(object):
     def __init__(self,args):
 
-        self.run_info = wandb.init(project="Example 2",settings=wandb.Settings(start_method="fork"),)
         self.args = args
+
+        if self.args.use_wandb:
+            self.run_info = wandb.init(project="Example 2",settings=wandb.Settings(start_method="fork"),mode=self.args.wandb_sync)
+        
 
 
 
@@ -138,58 +141,31 @@ class Evaluations(object):
         return wl_dp, defrred_idx_dp
 
 
-    def compute_perf_multiprocess(self,alpha,beta,result_path, lamda_new, simulation_time, num_runs,num_tasks_per_batch):
+    def compute_perf_multiprocess(self):
+        
+        if self.args.use_wandb:
+            self.run_info.name= "beta "+str(self.args.beta)+' alpha '+str(self.args.alpha)+' mu '+str(self.args.mu)+' lambda '+str(self.args.lamda)
 
-        self.run_info.name= "beta "+str(beta)+' alpha '+str(alpha)+' mu '+str(self.args.mu)+' lambda '+str(self.args.lamda)
+        print("Computing peformance with beta = "+str(self.args.beta)+'\n')
 
-        print("Computing peformance with beta = "+str(beta)+'\n')
-
-        param_path = result_path + 'num_tasks '+str(num_tasks_per_batch)+'/beta '+str(beta)+'/alpha '+str(alpha)+'/mu_'+str(self.args.mu)+'_lambda_'+str(self.args.lamda)+'/params.json'
+        param_path = self.args.results_path + 'num_tasks '+str(self.args.num_tasks_per_batch)+'/beta '+str(self.args.beta)+'/alpha '+str(self.args.alpha)+'/mu_'+str(self.args.mu)+'_lambda_'+str(self.args.lamda)+'/params.json'
 
         with open(param_path,'r') as file:
             params = json.load(file)
         
-        num_tasks_per_batch = params["num_tasks_per_batch"]
-
-        mu = params["mu"]
-
-        lamda = params["lamda"]
-
+        
         H0 = params["H0"]
 
         H1 = params["H1"]
 
-        prior = params["prior"]
-
-        d_0 = params["d_0"]
-
-        alpha = params["alpha"]
-
-        beta = params["beta"]
-
-        sigma_h = params["sigma_h"]
-        sigma_a = params["sigma_a"]
-
-        ctp = params["ctp"]
-        ctn = params["ctn"]
-        cfp = params["cfp"]
-        cfn = params["cfn"]
-        cm = params["cm"]
-        num_bins_fatigue = params["num_bins_fatigue"]
-        T = params["T"]
-        num_expecation_samples = params["num_expectation_samples"]
-
-        w_0 = params["w_0"]
-
-        ut = Utils(num_tasks_per_batch, mu, lamda, w_0, sigma_a, H0, H1, prior, d_0, alpha,beta, sigma_h, ctp, ctn, cfp, cfn, cm, num_bins_fatigue)
         
-        #initializing the utility with a different value of lambda (different than the one used for training)
-        ut_new = Utils(num_tasks_per_batch, mu, lamda_new, w_0, sigma_a, H0, H1, prior, d_0, alpha, beta, sigma_h, ctp, ctn, cfp, cfn, cm, num_bins_fatigue)
+        ut = Utils(self.args, H0, H1)
+        
+        
 
-        ut_k = Utils(num_tasks_per_batch, mu, lamda, w_0, sigma_a, H0, H1, prior, d_0, alpha, beta, sigma_h, ctp, ctn, cfp, cfn,cm, num_bins_fatigue)
+        V_bar = np.load(self.args.results_path + 'num_tasks '+str(self.args.num_tasks_per_batch)+'/beta '+str(self.args.beta)+'/alpha '+str(self.args.alpha)+'/mu_'+str(self.args.mu)+'_lambda_'+str(self.args.lamda)+'/V_bar.npy')
 
-
-        V_bar = np.load(result_path + 'num_tasks '+str(num_tasks_per_batch)+'/beta '+str(beta)+'/alpha '+str(alpha)+'/mu_'+str(mu)+'_lambda_'+str(lamda)+'/V_bar.npy')
+        num_runs = self.args.num_eval_runs
 
         all_auto_cost_k = np.zeros(num_runs)
         all_human_cost_k = np.zeros(num_runs)
@@ -231,28 +207,29 @@ class Evaluations(object):
             human_cost_adp_new=0
             deferred_cost_adp_new = 0
 
-            mega_batch = [ut.get_auto_obs() for _ in range(simulation_time)]
+            mega_batch = [ut.get_auto_obs() for _ in range(self.args.horizon)]
             all_mega_batch['Run-'+str(run+1)]=mega_batch
-            hum_wl_adp = np.zeros(simulation_time)
-            hum_wl_k = np.zeros(simulation_time)
-            for t in range(simulation_time):
+            hum_wl_adp = np.zeros(self.args.horizon)
+            hum_wl_k = np.zeros(self.args.horizon)
+            for t in range(self.args.horizon):
 
 
                 batched_obs, batched_posterior_h0, batched_posterior_h1=mega_batch[t]
 
-                wl_k, deferred_idx_k = self.compute_kesavs_algo(batched_posterior_h0, batched_posterior_h1, F_k, ut_k)
+                wl_k, deferred_idx_k = self.compute_kesavs_algo(batched_posterior_h0, batched_posterior_h1, F_k, ut)
 
                 wl_adp, deferred_idx_adp = self.compute_adp_solution(batched_posterior_h0,batched_posterior_h1,F_adp, V_bar,ut)
 
-                wl_adp_new, deferred_idx_adp_new = self.compute_adp_solution(batched_posterior_h0,batched_posterior_h1,F_adp_new, V_bar,ut_new)
+                
+                if self.args.use_wandb:
 
-                self.run_info.log({'Run-'+str(run)+'-t-'+str(t)+'-batched_obs':batched_obs,
-                                   'Run-'+str(run)+'-t-'+str(t)+'-batched_posterior_h0':batched_posterior_h0,
-                                   'Run-'+str(run)+'-t-'+str(t)+'-batched_posterior_h1':batched_posterior_h1,
-                                   'Run-'+str(run)+'-t-'+str(t)+'-workload_K':wl_k,
-                                   'Run-'+str(run)+'-t-'+str(t)+'-workload_ADP':wl_adp,
-                                   'Run-'+str(run)+'-t-'+str(t)+'-deferred_idx_K':deferred_idx_k,
-                                   'Run-'+str(run)+'-t-'+str(t)+'-deferred_idx_ADP':deferred_idx_adp})
+                    self.run_info.log({'Run-'+str(run)+'-t-'+str(t)+'-batched_obs':batched_obs,
+                                    'Run-'+str(run)+'-t-'+str(t)+'-batched_posterior_h0':batched_posterior_h0,
+                                    'Run-'+str(run)+'-t-'+str(t)+'-batched_posterior_h1':batched_posterior_h1,
+                                    'Run-'+str(run)+'-t-'+str(t)+'-workload_K':wl_k,
+                                    'Run-'+str(run)+'-t-'+str(t)+'-workload_ADP':wl_adp,
+                                    'Run-'+str(run)+'-t-'+str(t)+'-deferred_idx_K':deferred_idx_k,
+                                    'Run-'+str(run)+'-t-'+str(t)+'-deferred_idx_ADP':deferred_idx_adp})
 
                 
 
@@ -262,30 +239,30 @@ class Evaluations(object):
                 
                 a_cost_adp, h_cost_adp,def_cost_adp = ut.per_step_cost(F_adp,batched_posterior_h1,deferred_idx_adp)
 
-                a_cost_k, h_cost_k, def_cost_k = ut_k.per_step_cost(F_k,batched_posterior_h1,deferred_idx_k)
-
-                a_cost_adp_new, h_cost_adp_new, def_cost_adp_new = ut_new.per_step_cost(F_adp_new,batched_posterior_h1,deferred_idx_adp_new)
-                
-
-                self.run_info.log({'Run-'+str(run)+'-t-'+str(t)+'-AutoCost-K':a_cost_k,
-                                   'Run-'+str(run)+'-t-'+str(t)+'-AutoCost-ADP':a_cost_adp,
-                                   'Run-'+str(run)+'-t-'+str(t)+'-HumCost-K':h_cost_k,
-                                   'Run-'+str(run)+'-t-'+str(t)+'-HumCost-ADP':h_cost_adp,
-                                   'Run-'+str(run)+'-t-'+str(t)+'-DefferedCost-K':def_cost_k,
-                                   'Run-'+str(run)+'-t-'+str(t)+'-DeferredCost-ADP':def_cost_adp,
-                                   'Run-'+str(run)+'-t-'+str(t)+'-Fatigue-K':F_k,
-                                   'Run-'+str(run)+'-t-'+str(t)+'-Fatigue-ADP':F_adp
-                                   })
-
+                a_cost_k, h_cost_k, def_cost_k = ut.per_step_cost(F_k,batched_posterior_h1,deferred_idx_k)
 
                 
+                
+                if self.args.use_wandb:
+                    self.run_info.log({'Run-'+str(run)+'-t-'+str(t)+'-AutoCost-K':a_cost_k,
+                                    'Run-'+str(run)+'-t-'+str(t)+'-AutoCost-ADP':a_cost_adp,
+                                    'Run-'+str(run)+'-t-'+str(t)+'-HumCost-K':h_cost_k,
+                                    'Run-'+str(run)+'-t-'+str(t)+'-HumCost-ADP':h_cost_adp,
+                                    'Run-'+str(run)+'-t-'+str(t)+'-DefferedCost-K':def_cost_k,
+                                    'Run-'+str(run)+'-t-'+str(t)+'-DeferredCost-ADP':def_cost_adp,
+                                    'Run-'+str(run)+'-t-'+str(t)+'-Fatigue-K':F_k,
+                                    'Run-'+str(run)+'-t-'+str(t)+'-Fatigue-ADP':F_adp
+                                    })
 
 
-                # self.run_info.log({'Steps-Run-'+str(run): t, 'Batched-Obs':batched_obs, 'Batched-Posterior-H0': batched_posterior_h0,
-                #                    'Batched-Posterior-H1':batched_posterior_h1, 'Workload-K':wl_k, 'Workload-ADP':wl_adp,
-                #                    'Deferred-IDX-K':deferred_idx_k, 'Deferred-IDX-ADP':deferred_idx_adp, 'Fatigue-K':F_k, 'Fatigue-ADP':F_adp,
-                #                    'AutoCost-K':a_cost_k, 'AutoCost-ADP':a_cost_adp, 'HumCost-K':h_cost_k, 'HumCost-ADP':h_cost_adp, 
-                #                    'DeferredCost-K':def_cost_k, 'DeferredCost-ADP':def_cost_adp})
+                
+
+
+                    self.run_info.log({'Steps-Run-'+str(run): t, 'Batched-Obs':batched_obs, 'Batched-Posterior-H0': batched_posterior_h0,
+                                    'Batched-Posterior-H1':batched_posterior_h1, 'Workload-K':wl_k, 'Workload-ADP':wl_adp,
+                                    'Deferred-IDX-K':deferred_idx_k, 'Deferred-IDX-ADP':deferred_idx_adp, 'Fatigue-K':F_k, 'Fatigue-ADP':F_adp,
+                                    'AutoCost-K':a_cost_k, 'AutoCost-ADP':a_cost_adp, 'HumCost-K':h_cost_k, 'HumCost-ADP':h_cost_adp, 
+                                    'DeferredCost-K':def_cost_k, 'DeferredCost-ADP':def_cost_adp})
 
                 auto_cost_adp+=a_cost_adp
                 human_cost_adp+=h_cost_adp
@@ -295,38 +272,38 @@ class Evaluations(object):
                 human_cost_k += h_cost_k
                 deferred_cost_k += def_cost_k
 
-                auto_cost_adp_new+=a_cost_adp_new
-                human_cost_adp_new += h_cost_adp_new
-                deferred_cost_adp_new += def_cost_adp_new
-
+                
 
                 #get the next fatigue state for kesav
-                F_k = ut_k.get_fatigue(F_k, wl_k)
+                F_k = ut.get_fatigue(F_k, wl_k)
 
                 #get the next fatigue state for adp
 
                 F_adp = ut.get_fatigue(F_adp,wl_adp)
 
-                F_adp_new = ut_new.get_fatigue(F_adp_new,wl_adp_new)
+                
 
             all_human_wl_adp['Run-'+str(run+1)]=hum_wl_adp
             all_human_wl_k['Run-'+str(run+1)]=hum_wl_k
 
-            self.run_info.log({'Run':run,'Run-'+str(run)+'-TotalAutoCost-K':auto_cost_k,
-                               'Run-'+str(run)+'-TotalAutoCost-ADP':auto_cost_adp,
-                               'Run-'+str(run)+'-TotalHumCost-K':human_cost_k,
-                               'Run-'+str(run)+'-TotalHumCost-ADP':human_cost_adp,
-                               'Run-'+str(run)+'-TotalCost-K':human_cost_k+auto_cost_k+deferred_cost_k,
-                               'Run-'+str(run)+'-TotalCost-ADP':human_cost_adp+auto_cost_adp+deferred_cost_adp})
             
-            self.run_info.log({'All-Run-AutoCost-K':auto_cost_k,
-                               'All-Run-AutoCost-ADP':auto_cost_adp,
-                               'All-Run-HumCost-K':human_cost_k,
-                               'All-Run-HumCost-ADP':human_cost_adp,
-                               'All-Run-DeffCost-K':deferred_cost_k,
-                               'All-Run-DeffCost-ADP':deferred_cost_adp,
-                               'All-Run-TotalCost-K':auto_cost_k+human_cost_k+deferred_cost_k,
-                               'All-Run-TotalCost-ADP': auto_cost_adp+human_cost_adp+deferred_cost_adp})
+            if self.args.use_wandb:
+            
+                self.run_info.log({'Run':run,'Run-'+str(run)+'-TotalAutoCost-K':auto_cost_k,
+                                'Run-'+str(run)+'-TotalAutoCost-ADP':auto_cost_adp,
+                                'Run-'+str(run)+'-TotalHumCost-K':human_cost_k,
+                                'Run-'+str(run)+'-TotalHumCost-ADP':human_cost_adp,
+                                'Run-'+str(run)+'-TotalCost-K':human_cost_k+auto_cost_k+deferred_cost_k,
+                                'Run-'+str(run)+'-TotalCost-ADP':human_cost_adp+auto_cost_adp+deferred_cost_adp})
+                
+                self.run_info.log({'All-Run-AutoCost-K':auto_cost_k,
+                                'All-Run-AutoCost-ADP':auto_cost_adp,
+                                'All-Run-HumCost-K':human_cost_k,
+                                'All-Run-HumCost-ADP':human_cost_adp,
+                                'All-Run-DeffCost-K':deferred_cost_k,
+                                'All-Run-DeffCost-ADP':deferred_cost_adp,
+                                'All-Run-TotalCost-K':auto_cost_k+human_cost_k+deferred_cost_k,
+                                'All-Run-TotalCost-ADP': auto_cost_adp+human_cost_adp+deferred_cost_adp})
             
 
             
@@ -349,7 +326,7 @@ class Evaluations(object):
 
              
 
-        path1 = result_path + 'num_tasks '+str(num_tasks_per_batch)+'/beta '+str(beta)+'/alpha '+str(alpha)+'/mu_'+str(mu)+'_lambda_'+str(lamda)+'/plot_analysis/cost_comparison/'
+        path1 = self.args.results_path + 'num_tasks '+str(self.args.num_tasks_per_batch)+'/beta '+str(self.args.beta)+'/alpha '+str(self.args.alpha)+'/mu_'+str(self.args.mu)+'_lambda_'+str(self.args.lamda)+'/plot_analysis/cost_comparison/'
         if not os.path.exists(path1):
             try:
                 os.makedirs(path1,exist_ok=True)
@@ -392,18 +369,19 @@ class Evaluations(object):
         np.save(path1+'all_deferred_cost_k.npy',all_deferred_cost_k)
 
 
-        self.run_info.finish()
+        if self.args.use_wandb:
+            self.run_info.finish()
         
         return
 
 
 
 
-    def compute_performance(self,alpha, beta,result_path,lamda_new, simulation_time,num_tasks_per_batch, num_runs=500):
+    def compute_performance(self):
 
                
         
-        self.compute_perf_multiprocess(alpha, beta,result_path,lamda_new,simulation_time, num_runs, num_tasks_per_batch)
+        self.compute_perf_multiprocess()
 
         
 
@@ -413,57 +391,28 @@ class Evaluations(object):
 
 
 
-    def run_evaluation(self,alpha, beta, result_path,lamda_new, simulation_time,num_tasks_per_batch):
+    def run_evaluation(self):
 
         ## loading the parameters
 
-        param_path = result_path + 'num_tasks '+str(num_tasks_per_batch)+'/beta '+str(beta)+'/alpha '+str(alpha)+'/mu_'+str(self.args.mu)+'_lambda_'+str(self.args.lamda)+'/params.json'
+        param_path = self.args.results_path + 'num_tasks '+str(self.args.num_tasks_per_batch)+'/beta '+str(self.args.beta)+'/alpha '+str(self.args.alpha)+'/mu_'+str(self.args.mu)+'_lambda_'+str(self.args.lamda)+'/params.json'
 
         with open(param_path,'r') as file:
             params = json.load(file)
         
-        num_tasks_per_batch = params["num_tasks_per_batch"]
-
-        mu = params["mu"]
-
-        lamda = params["lamda"]
-
+        
+        
         H0 = params["H0"]
 
         H1 = params["H1"]
 
-        prior = params["prior"]
-
-        d_0 = params["d_0"]
-
-        alpha = params["alpha"]
-
-        beta = params["beta"]
-
-        sigma_h = params["sigma_h"]
-        sigma_a = params["sigma_a"]
-
-        ctp = params["ctp"]
-        ctn = params["ctn"]
-        cfp = params["cfp"]
-        cfn = params["cfn"]
-        cm = params["cm"]
-        num_bins_fatigue = params["num_bins_fatigue"]
-        T = params["T"]
-        num_expecation_samples = params["num_expectation_samples"]
-
-        w_0 = params["w_0"]
-
+        
         
 
-        ut = Utils(num_tasks_per_batch, mu, lamda, w_0, sigma_a, H0, H1, prior, d_0, alpha, beta, sigma_h, ctp, ctn, cfp, cfn, cm, num_bins_fatigue)
+        ut = Utils(self.args, H0, H1)
 
-        ut_k = Utils(num_tasks_per_batch, mu, lamda, w_0, sigma_a, H0, H1, prior, d_0, alpha, beta, sigma_h, ctp, ctn, cfp, cfn, cm, num_bins_fatigue)
-
-        ut_new = Utils(num_tasks_per_batch, mu, lamda_new, w_0, sigma_a, H0, H1, prior, d_0, alpha, beta, sigma_h, ctp, ctn, cfp, cfn, cm, num_bins_fatigue)
-
-
-        V_bar = np.load(result_path + 'num_tasks '+str(num_tasks_per_batch)+'/beta '+str(beta)+'/alpha '+str(alpha)+'/mu_'+str(mu)+'_lambda_'+str(lamda)+'/V_bar.npy')
+       
+        V_bar = np.load(self.args.results_path + 'num_tasks '+str(self.args.num_tasks_per_batch)+'/beta '+str(self.args.beta)+'/alpha '+str(self.args.alpha)+'/mu_'+str(self.args.mu)+'_lambda_'+str(self.args.lamda)+'/V_bar.npy')
 
 
         ## initial fatigue is for kesav 0
@@ -477,51 +426,48 @@ class Evaluations(object):
 
         fatigue_evolution_kesav = []
         fatigue_evolution_adp = []
-        fatigue_evolution_adp_new = []
+        
 
         taskload_evolution_kesav = []
         taskload_evolution_adp =[]
-        taskload_evolution_adp_new =[]
-
-        mega_obs = [ut.get_auto_obs() for _ in range(simulation_time)]
         
-        for t in tqdm(range(simulation_time)):
+
+        mega_obs = [ut.get_auto_obs() for _ in range(self.args.horizon)]
+        
+        for t in tqdm(range(self.args.horizon)):
 
             fatigue_evolution_kesav.append(F_k)
             fatigue_evolution_adp.append(F_adp)
-            fatigue_evolution_adp_new.append(F_adp_new)
+            
 
             batched_obs, batched_posterior_h0, batched_posterior_h1= mega_obs[t]
 
-            wl_k, deferred_idx_k = self.compute_kesavs_algo(batched_posterior_h0, batched_posterior_h1, F_k, ut_k)
+            wl_k, deferred_idx_k = self.compute_kesavs_algo(batched_posterior_h0, batched_posterior_h1, F_k, ut)
 
             wl_adp, deferred_idx_adp = self.compute_adp_solution(batched_posterior_h0,batched_posterior_h1,F_adp, V_bar,ut)
-
-            
-            wl_adp_new, deferred_idx_adp_new = self.compute_adp_solution(batched_posterior_h0,batched_posterior_h1,F_adp_new, V_bar,ut_new)
-
 
 
 
             #get the next fatigue state for kesav
-            F_k = ut_k.get_fatigue(F_k, wl_k)
+            F_k = ut.get_fatigue(F_k, wl_k)
 
             #get the next fatigue state for adp
 
             F_adp = ut.get_fatigue(F_adp,wl_adp)
 
-            F_adp_new = ut_new.get_fatigue(F_adp_new,wl_adp_new)
-
+            
             taskload_evolution_adp.append(wl_adp)
-            taskload_evolution_adp_new.append(wl_adp_new)
+            
             taskload_evolution_kesav.append(wl_k)
         
-        return fatigue_evolution_kesav,fatigue_evolution_adp,fatigue_evolution_adp_new, taskload_evolution_kesav, taskload_evolution_adp, taskload_evolution_adp_new
+        return fatigue_evolution_kesav,fatigue_evolution_adp, taskload_evolution_kesav, taskload_evolution_adp
 
 
 
 
-    def run_perf_eval(self,alpha, beta, result_path,lamda_new,simulation_time,num_tasks_per_batch, num_runs=10):
+    def run_perf_eval(self):
+        
+        num_runs = self.args.num_eval_runs
 
         all_fatigue_kesav = []
         all_fatigue_adp = []
@@ -530,7 +476,7 @@ class Evaluations(object):
 
         for run in range(num_runs): 
         
-            fatigue_evolution_kesav,fatigue_evolution_adp,fatigue_evolution_adp_new, taskload_evolution_kesav, taskload_evolution_adp, taskload_evolution_adp_new = self.run_evaluation(alpha,beta,result_path,lamda_new,simulation_time,num_tasks_per_batch)
+            fatigue_evolution_kesav,fatigue_evolution_adp, taskload_evolution_kesav, taskload_evolution_adp= self.run_evaluation()
 
             all_fatigue_kesav.append(fatigue_evolution_kesav)
             all_fatigue_adp.append(fatigue_evolution_adp)
@@ -541,7 +487,7 @@ class Evaluations(object):
         
         
         
-        path_name = result_path + 'num_tasks '+str(num_tasks_per_batch)+'/beta '+str(beta)+'/alpha '+str(alpha)+'/mu_'+str(self.args.mu)+'_lambda_'+str(self.args.lamda)+'/plot_analysis/'
+        path_name = self.args.results_path + 'num_tasks '+str(self.args.num_tasks_per_batch)+'/beta '+str(self.args.beta)+'/alpha '+str(self.args.alpha)+'/mu_'+str(self.args.mu)+'_lambda_'+str(self.args.lamda)+'/plot_analysis/'
 
         if not os.path.exists(path_name):
             try:
@@ -579,11 +525,11 @@ class Evaluations(object):
         std_taskload_adp = np.std(all_taskload_adp,axis=0)
 
 
-        plt.step(np.arange(1,simulation_time+1,1),mean_fatigue_k,color='black',where='post',label='K-Algorithm')
-        plt.fill_between(np.arange(1,simulation_time+1,1), mean_fatigue_k-std_fatigue_k, mean_fatigue_k+std_fatigue_k,step='post', alpha=0.2, color='black')
+        plt.step(np.arange(1,self.args.horizon+1,1),mean_fatigue_k,color='black',where='post',label='K-Algorithm')
+        plt.fill_between(np.arange(1,self.args.horizon+1,1), mean_fatigue_k-std_fatigue_k, mean_fatigue_k+std_fatigue_k,step='post', alpha=0.2, color='black')
 
-        plt.step(np.arange(1,simulation_time+1,1),mean_fatigue_adp,color='orange',where='post',label='ADP')
-        plt.fill_between(np.arange(1,simulation_time+1,1), mean_fatigue_adp-std_fatigue_adp, mean_fatigue_adp+std_fatigue_adp,step='post', alpha=0.2, color='orange')
+        plt.step(np.arange(1,self.args.horizon+1,1),mean_fatigue_adp,color='orange',where='post',label='ADP')
+        plt.fill_between(np.arange(1,self.args.horizon+1,1), mean_fatigue_adp-std_fatigue_adp, mean_fatigue_adp+std_fatigue_adp,step='post', alpha=0.2, color='orange')
 
         plt.grid(True)
         
@@ -591,23 +537,23 @@ class Evaluations(object):
         plt.xlabel('Time')
         plt.ylabel('Fatigue Level')
         plt.legend()
-        plt.savefig(path_name+'beta_'+str(beta)+'_fatigue.pdf')
+        plt.savefig(path_name+'beta_'+str(self.args.beta)+'_fatigue.pdf')
 
         plt.clf()
         plt.close()
 
 
-        plt.step(np.arange(1,simulation_time+1,1),mean_taskload_k,color='black',where='post',label='K-Algorithm')
-        plt.fill_between(np.arange(1,simulation_time+1,1), mean_taskload_k-std_taskload_k, mean_taskload_k+std_taskload_k,step='post', alpha=0.2, color='black')
+        plt.step(np.arange(1,self.args.horizon+1,1),mean_taskload_k,color='black',where='post',label='K-Algorithm')
+        plt.fill_between(np.arange(1,self.args.horizon+1,1), mean_taskload_k-std_taskload_k, mean_taskload_k+std_taskload_k,step='post', alpha=0.2, color='black')
 
-        plt.step(np.arange(1,simulation_time+1,1),mean_taskload_adp,color='orange',where='post',label='ADP')
-        plt.fill_between(np.arange(1,simulation_time+1,1), mean_taskload_adp-std_taskload_adp, mean_taskload_adp+std_taskload_adp,step='post', alpha=0.2, color='orange')
+        plt.step(np.arange(1,self.args.horizon+1,1),mean_taskload_adp,color='orange',where='post',label='ADP')
+        plt.fill_between(np.arange(1,self.args.horizon+1,1), mean_taskload_adp-std_taskload_adp, mean_taskload_adp+std_taskload_adp,step='post', alpha=0.2, color='orange')
         
     
         plt.xlabel('Time')
         plt.ylabel('Workload level')
         plt.legend()
-        plt.savefig(path_name+'beta_'+str(beta)+'_workload.pdf')
+        plt.savefig(path_name+'beta_'+str(self.args.beta)+'_workload.pdf')
 
         plt.clf()
         plt.close()

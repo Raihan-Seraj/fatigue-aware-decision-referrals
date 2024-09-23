@@ -295,7 +295,14 @@ class Evaluations(object):
                                 'Run-'+str(run)+'-TotalCost-ADP':human_cost_adp+auto_cost_adp+deferred_cost_adp})
             
 
-            
+                self.run_info.log({'All-Run-AutoCost-K':auto_cost_k,
+                               'All-Run-AutoCost-ADP':auto_cost_adp,
+                               'All-Run-HumCost-K':human_cost_k,
+                               'All-Run-HumCost-ADP':human_cost_adp,
+                               'All-Run-DeffCost-K':deferred_cost_k,
+                               'All-Run-DeffCost-ADP':deferred_cost_adp,
+                               'All-Run-TotalCost-K':auto_cost_k+human_cost_k+deferred_cost_k,
+                               'All-Run-TotalCost-ADP': auto_cost_adp+human_cost_adp+deferred_cost_adp})
 
 
 
@@ -409,16 +416,16 @@ class Evaluations(object):
         #initial fatigue for adp
         F_adp = 0
 
-        #initial fatigue for the new model
-        F_adp_new=0
+        
+       
 
         fatigue_evolution_kesav = []
         fatigue_evolution_adp = []
-        fatigue_evolution_adp_new = []
+        
 
         taskload_evolution_kesav = []
         taskload_evolution_adp =[]
-        taskload_evolution_adp_new =[]
+        
 
         mega_obs = [ut.get_auto_obs() for _ in range(self.args.horizon)]
         
@@ -426,7 +433,7 @@ class Evaluations(object):
 
             fatigue_evolution_kesav.append(F_k)
             fatigue_evolution_adp.append(F_adp)
-            fatigue_evolution_adp_new.append(F_adp_new)
+            
 
             batched_obs, batched_posterior_h0, batched_posterior_h1= mega_obs[t]
 
