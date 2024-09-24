@@ -28,42 +28,54 @@ def create_performance_table(beta,alphas,mus,lamdas,num_tasks_per_batch, result_
 
 			for lamda in lamdas:
 
-				all_run_human_cost_adp_path = result_path + 'beta '+str(beta)+'/alpha '+str(alpha)+'/mu_'+str(mu)+'_lambda_'+str(lamda)+'/all_human_cost_adp.npy'
+				all_run_human_cost_adp_path = result_path + 'beta '+str(beta)+'/alpha '+str(alpha)+'/mu_'+str(mu)+'_lambda_'+str(lamda)+'/plot_analysis/cost_comparison/all_human_cost_adp.npy'
 
-				all_run_human_cost_k_path = result_path  + 'beta '+str(beta)+'/alpha '+str(alpha)+'/mu_'+str(mu)+'_lambda_'+str(lamda)+'/all_human_cost_k.npy'
+				all_run_human_cost_k_path = result_path  + 'beta '+str(beta)+'/alpha '+str(alpha)+'/mu_'+str(mu)+'_lambda_'+str(lamda)+'/plot_analysis/cost_comparison/all_human_cost_k.npy'
 
-				all_run_automation_cost_adp_path = result_path + 'beta '+str(beta)+'/alpha '+str(alpha)+'/mu_'+str(mu)+'_lambda_'+str(lamda)+'/all_auto_cost_adp.npy'
+				all_run_automation_cost_adp_path = result_path + 'beta '+str(beta)+'/alpha '+str(alpha)+'/mu_'+str(mu)+'_lambda_'+str(lamda)+'/plot_analysis/cost_comparison/all_auto_cost_adp.npy'
 
-				all_run_automation_cost_k_path = result_path + 'beta '+str(beta)+'/alpha '+str(alpha)+'/mu_'+str(mu)+'_lambda_'+str(lamda)+'/all_auto_cost_k.npy'
-
-
-				all_run_deferred_cost_k_path = result_path + 'beta '+str(beta)+'/alpha '+str(alpha)+'/mu_'+str(mu)+'_lambda_'+str(lamda)+'/all_deferred_cost_k.npy'
-				all_run_deferred_cost_adp_path = result_path + 'beta '+str(beta)+'/alpha '+str(alpha)+'/mu_'+str(mu)+'_lambda_'+str(lamda)+'/all_deferred_cost_adp.npy'
+				all_run_automation_cost_k_path = result_path + 'beta '+str(beta)+'/alpha '+str(alpha)+'/mu_'+str(mu)+'_lambda_'+str(lamda)+'/plot_analysis/cost_comparison/all_auto_cost_k.npy'
 
 
+				all_run_deferred_cost_k_path = result_path + 'beta '+str(beta)+'/alpha '+str(alpha)+'/mu_'+str(mu)+'_lambda_'+str(lamda)+'/plot_analysis/cost_comparison/all_deferred_cost_k.npy'
+				all_run_deferred_cost_adp_path = result_path + 'beta '+str(beta)+'/alpha '+str(alpha)+'/mu_'+str(mu)+'_lambda_'+str(lamda)+'/plot_analysis/cost_comparison/all_deferred_cost_adp.npy'
 
-				all_run_human_cost_adp = np.load(all_run_human_cost_adp_path)
-				all_run_human_cost_k = np.load(all_run_human_cost_k_path)
 
-				all_run_auto_cost_adp = np.load(all_run_automation_cost_adp_path)
-				all_run_auto_cost_k =  np.load(all_run_automation_cost_k_path)
+				try:
+					all_run_human_cost_adp = np.load(all_run_human_cost_adp_path)
+					all_run_human_cost_k = np.load(all_run_human_cost_k_path)
 
-				all_run_deferred_cost_k = np.load(all_run_deferred_cost_k_path)
-				all_run_deferred_cost_adp = np.load(all_run_deferred_cost_adp_path)
+					all_run_auto_cost_adp = np.load(all_run_automation_cost_adp_path)
+					all_run_auto_cost_k =  np.load(all_run_automation_cost_k_path)
+
+					all_run_deferred_cost_k = np.load(all_run_deferred_cost_k_path)
+					all_run_deferred_cost_adp = np.load(all_run_deferred_cost_adp_path)
+				except FileNotFoundError:
+
+					
+					print("File not found, for alpha "+str(alpha), ' beta '+str(beta)+' mu '+str(mu)+' lamda '+str(lamda))
+					continue 
+					
 
 
 				# now loading the taskload 
-				all_run_human_tl_adp_path = result_path + 'beta '+str(beta)+'/alpha '+str(alpha)+'/mu_'+str(mu)+'_lambda_'+str(lamda)+'/all_human_wl_adp.pkl'
+				all_run_human_tl_adp_path = result_path + 'beta '+str(beta)+'/alpha '+str(alpha)+'/mu_'+str(mu)+'_lambda_'+str(lamda)+'/plot_analysis/cost_comparison/all_human_wl_adp.pkl'
 
-				all_run_human_tl_k_path = result_path + 'beta '+str(beta)+'/alpha '+str(alpha)+'/mu_'+str(mu)+'_lambda_'+str(lamda)+'/all_human_wl_k.pkl'
+				all_run_human_tl_k_path = result_path + 'beta '+str(beta)+'/alpha '+str(alpha)+'/mu_'+str(mu)+'_lambda_'+str(lamda)+'/plot_analysis/cost_comparison/all_human_wl_k.pkl'
 
-				with open(all_run_human_tl_adp_path,'rb') as file1:
+				
+				try:
+					with open(all_run_human_tl_adp_path,'rb') as file1:
 
-					all_run_human_wl_adp = pickle.load(file1)
+						all_run_human_wl_adp = pickle.load(file1)
 
-				with open(all_run_human_tl_k_path, 'rb') as file2:
-					
-					all_run_human_wl_k = pickle.load(file2)
+					with open(all_run_human_tl_k_path, 'rb') as file2:
+						
+						all_run_human_wl_k = pickle.load(file2)
+				
+				except FileNotFoundError:
+					print("File not found skipping to the next file")
+					continue 
 
 				
 				human_cost_per_wl_per_run_adp = [all_run_human_cost_adp[i]/(sum(all_run_human_wl_adp['Run-'+str(i+1)])) for i in range(len(all_run_human_cost_adp))]
@@ -125,7 +137,7 @@ def create_performance_table(beta,alphas,mus,lamdas,num_tasks_per_batch, result_
 				
 
 				new_row  = pd.DataFrame([[beta, alpha, mu, lamda, 
-							  	str(expected_total_human_cost_adp)+'$\pm$'+str(std_total_human_cost_adp),
+								str(expected_total_human_cost_adp)+'$\pm$'+str(std_total_human_cost_adp),
 								str(expected_total_human_cost_k)+'$\pm$'+str(std_total_human_cost_k),
 								str(expected_human_cost_per_wl_adp)+'$\pm$'+str(std_human_cost_per_wl_adp),
 								str(expected_human_cost_per_wl_k)+'$\pm$'+str(std_human_cost_per_wl_k),
@@ -140,9 +152,11 @@ def create_performance_table(beta,alphas,mus,lamdas,num_tasks_per_batch, result_
 								str(expected_taskload_human_adp)+'$\pm$'+str(std_taskload_human_adp),
 								str(expected_taskload_human_k)+'$\pm$'+str(std_taskload_human_k)]],columns=final_data.columns)
 				
-
+				
 				final_data = pd.concat([final_data,new_row],ignore_index=True)
-
+				
+				
+	
 	final_data.to_csv(result_path+'beta '+str(beta)+'/refined_performance_table.csv')
 	
 	return
