@@ -197,15 +197,17 @@ def plot_human_perf_vs_taskload(beta, result_path):
 
 if __name__=='__main__':
       
-	result_path = 'results/'
+	result_path = 'test/'
 	num_tasks_per_batch=20
 	
 	beta = 0.5
 
-	alphas = [1.0, 2.0, 5.0, 7.0, 9.0]
+	#alphas = [1.0, 2.0, 5.0, 7.0, 9.0]
 
-	gammas = [0.003, 0.005, 0.05, 0.07]
+	#gammas = [0.003, 0.005, 0.05, 0.07]
 
+	alphas=[4]
+	gammas=[0.05]
 	
 
 	

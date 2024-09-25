@@ -29,7 +29,7 @@ def approximate_dynamic_program(T, num_expectation_samples,ut):
     
 
     # number of possible fatigue states
-    F_states = np.round(np.linspace(0, 1, ut.num_bins_fatigue + 1), 2)
+    F_states = np.round(np.linspace(0, 20, ut.num_bins_fatigue + 1), 2)
 
     # initializing the value of V_bar
     V_bar = {t: np.zeros((ut.num_bins_fatigue + 1)) for t in range(T + 2)}
@@ -119,11 +119,9 @@ def run_dp_parallel_beta(args, H0, H1):
     num_tasks_per_batch = args.num_tasks_per_batch
     
     gamma = args.gamma
-    w_0 = args.w_0
     sigma_a = args.sigma_a
     prior = args.prior
     d_0 = args.d_0
-    alpha = args.alpha
     beta = args.beta
     sigma_h = args.sigma_h
     ctp = args.ctp
@@ -144,8 +142,6 @@ def run_dp_parallel_beta(args, H0, H1):
 
     param_values = {
        "num_tasks_per_batch": num_tasks_per_batch, 
-
-        "w_0": w_0,
         
         "H0": H0,
 
@@ -154,8 +150,6 @@ def run_dp_parallel_beta(args, H0, H1):
         "prior": prior, 
 
         "d_0": d_0,
-
-        "alpha":alpha,
 
         "beta": beta, 
 
@@ -186,7 +180,7 @@ def run_dp_parallel_beta(args, H0, H1):
         run_info.config.update(param_values)
 
 
-    path_name = args.results_path + 'num_tasks '+str(num_tasks_per_batch)+'/beta '+str(beta)+'/alpha '+str(alpha)+'/gamma_'+str(gamma)+'/'
+    path_name = args.results_path + 'num_tasks '+str(num_tasks_per_batch)+'/beta '+str(beta)+'/gamma_'+str(gamma)+'/'
 
     if not os.path.exists(path_name):
         try:
@@ -238,7 +232,6 @@ def main():
     parser = argparse.ArgumentParser(description="Approximate Dynamic Program parameters.")
 
     parser.add_argument('--beta', type=float, default= 0.5, help='Exponent that influcences the extent to which workload affects the observation channel')
-    parser.add_argument('--alpha',type=float, default=4, help='Exponent that influences the extent to which fatigue affects the observation channel' )
     parser.add_argument('--num_expectation_samples', type=int, default=10, help='Number of expectation samples to take for the approximate Dynamic Program.')
     parser.add_argument('--horizon', type=int, default=20, help='The length of the horizon.')
     parser.add_argument('--d_0',type=float, default= 5, help='The value of d0 in the experiment.')
@@ -246,7 +239,6 @@ def main():
     parser.add_argument('--num_tasks_per_batch', type=int, default=20, help='The total number of tasks in a batch.')
     parser.add_argument('--sigma_a',type=float, default=2.5, help='Automation observation channel variance.')
     parser.add_argument('--sigma_h', type=float, default=1.0, help='Human observation channel variance.')
-    parser.add_argument('--w_0', type=int, default=15, help='The workload threshold beyond which fatigue recovery does not occur')
     parser.add_argument('--gamma', type=float, default=0.05, help='The rate at which the fatigue grows')
     parser.add_argument('--num_bins_fatigue', type=int, default=10, help='The number of bins to be used to discretize fatigue')
     

@@ -144,11 +144,11 @@ class Evaluations(object):
     def compute_perf_multiprocess(self):
         
         if self.args.use_wandb:
-            self.run_info.name= "beta "+str(self.args.beta)+' alpha '+str(self.args.alpha)+' gamma '+str(self.args.gamma)
+            self.run_info.name= "beta "+str(self.args.beta)+' gamma '+str(self.args.gamma)
 
-        print("Computing peformance with beta = "+str(self.args.beta)+ ' alpha = '+str(self.args.alpha)+' gamma = '+str(self.args.gamma) +'\n')
+        print("Computing peformance with beta = "+str(self.args.beta)+ ' gamma = '+str(self.args.gamma) +'\n')
 
-        param_path = self.args.results_path + 'num_tasks '+str(self.args.num_tasks_per_batch)+'/beta '+str(self.args.beta)+'/alpha '+str(self.args.alpha)+'/gamma_'+str(self.args.gamma)+'/params.json'
+        param_path = self.args.results_path + 'num_tasks '+str(self.args.num_tasks_per_batch)+'/beta '+str(self.args.beta)+'/gamma_'+str(self.args.gamma)+'/params.json'
 
         with open(param_path,'r') as file:
             params = json.load(file)
@@ -163,7 +163,7 @@ class Evaluations(object):
         
         
 
-        V_bar = np.load(self.args.results_path + 'num_tasks '+str(self.args.num_tasks_per_batch)+'/beta '+str(self.args.beta)+'/alpha '+str(self.args.alpha)+'/gamma_'+str(self.args.gamma)+'/V_bar.npy')
+        V_bar = np.load(self.args.results_path + 'num_tasks '+str(self.args.num_tasks_per_batch)+'/beta '+str(self.args.beta)+'/gamma_'+str(self.args.gamma)+'/V_bar.npy')
 
         num_runs = self.args.num_eval_runs
 
@@ -326,7 +326,7 @@ class Evaluations(object):
 
              
 
-        path1 = self.args.results_path + 'num_tasks '+str(self.args.num_tasks_per_batch)+'/beta '+str(self.args.beta)+'/alpha '+str(self.args.alpha)+'/gamma_'+str(self.args.gamma)+'/plot_analysis/cost_comparison/'
+        path1 = self.args.results_path + 'num_tasks '+str(self.args.num_tasks_per_batch)+'/beta '+str(self.args.beta)+'/gamma_'+str(self.args.gamma)+'/plot_analysis/cost_comparison/'
         if not os.path.exists(path1):
             try:
                 os.makedirs(path1,exist_ok=True)
@@ -395,7 +395,7 @@ class Evaluations(object):
 
         ## loading the parameters
 
-        param_path = self.args.results_path + 'num_tasks '+str(self.args.num_tasks_per_batch)+'/beta '+str(self.args.beta)+'/alpha '+str(self.args.alpha)+'/gamma_'+str(self.args.gamma)+'/params.json'
+        param_path = self.args.results_path + 'num_tasks '+str(self.args.num_tasks_per_batch)+'/beta '+str(self.args.beta)+'/gamma_'+str(self.args.gamma)+'/params.json'
 
         with open(param_path,'r') as file:
             params = json.load(file)
@@ -412,7 +412,7 @@ class Evaluations(object):
         ut = Utils(self.args, H0, H1)
 
        
-        V_bar = np.load(self.args.results_path + 'num_tasks '+str(self.args.num_tasks_per_batch)+'/beta '+str(self.args.beta)+'/alpha '+str(self.args.alpha)+'/gamma_'+str(self.args.gamma)+'/V_bar.npy')
+        V_bar = np.load(self.args.results_path + 'num_tasks '+str(self.args.num_tasks_per_batch)+'/beta '+str(self.args.beta)+'/gamma_'+str(self.args.gamma)+'/V_bar.npy')
 
 
         ## initial fatigue is for kesav 0
@@ -487,7 +487,7 @@ class Evaluations(object):
         
         
         
-        path_name = self.args.results_path + 'num_tasks '+str(self.args.num_tasks_per_batch)+'/beta '+str(self.args.beta)+'/alpha '+str(self.args.alpha)+'/gamma_'+str(self.args.gamma)+'/plot_analysis/'
+        path_name = self.args.results_path + 'num_tasks '+str(self.args.num_tasks_per_batch)+'/beta '+str(self.args.beta)+'/gamma_'+str(self.args.gamma)+'/plot_analysis/'
 
         if not os.path.exists(path_name):
             try:
