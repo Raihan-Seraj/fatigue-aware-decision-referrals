@@ -7,7 +7,7 @@ import seaborn as sns
 
 
 
-def create_performance_table(beta,alphas,mus,lamdas,num_tasks_per_batch, result_path):
+def create_performance_table(beta,alphas,gammas,num_tasks_per_batch, result_path):
 
 	result_path = result_path + 'num_tasks '+str(num_tasks_per_batch)+'/'
 
@@ -15,7 +15,7 @@ def create_performance_table(beta,alphas,mus,lamdas,num_tasks_per_batch, result_
 
 	round_decimal_places=3
       
-	final_data = pd.DataFrame(columns=['Beta','Alpha','Mu','Lambda', 'Expected Total Human Cost-ADP', ' Expected Total Human Cost-K','Expected Human Cost Per Taskload-ADP','Expected Human Cost Per Taskload-K',
+	final_data = pd.DataFrame(columns=['Beta','Alpha','Gamma', 'Expected Total Human Cost-ADP', ' Expected Total Human Cost-K','Expected Human Cost Per Taskload-ADP','Expected Human Cost Per Taskload-K',
 										'Expected Total Automation Cost-ADP','Expected Total Automation Cost-K', 'Expected Automation Cost Per Taskload-ADP', 'Expected Automation Cost Per Taskload-K',
 										'Expected Total Deferred Cost-ADP','Expected Total Deferred Cost-K',
 										'Expected Total Cost-ADP','Expected Total Cost-K', 'Expected Taskload of the Human-ADP','Expected Taskload of the Human-K'])
@@ -40,7 +40,7 @@ def create_performance_table(beta,alphas,mus,lamdas,num_tasks_per_batch, result_
 			all_run_deferred_cost_k_path = result_path + 'beta '+str(beta)+'/alpha '+str(alpha)+'/gamma_'+str(gamma)+'/plot_analysis/cost_comparison/all_deferred_cost_k.npy'
 			all_run_deferred_cost_adp_path = result_path + 'beta '+str(beta)+'/alpha '+str(alpha)+'/gamma_'+str(gamma)+'/plot_analysis/cost_comparison/all_deferred_cost_adp.npy'
 
-
+			#import ipdb;ipdb.set_trace()
 			try:
 				all_run_human_cost_adp = np.load(all_run_human_cost_adp_path)
 				all_run_human_cost_k = np.load(all_run_human_cost_k_path)
@@ -53,7 +53,7 @@ def create_performance_table(beta,alphas,mus,lamdas,num_tasks_per_batch, result_
 			except FileNotFoundError:
 
 				
-				print("File not found, for alpha "+str(alpha), ' beta '+str(beta)+' mu '+str(mu)+' lamda '+str(lamda))
+				print("File not found, for alpha "+str(alpha), ' beta '+str(beta)+' gamma '+str(gamma))
 				continue 
 				
 
@@ -202,9 +202,9 @@ if __name__=='__main__':
 	
 	beta = 0.5
 
-	alphas = [1.0, 2.0, 4.0, 7.0, 9.0]
+	alphas = [1.0, 2.0, 5.0, 7.0, 9.0]
 
-	gammas = [0.03 , 0.05, 0.07, 0.09]
+	gammas = [0.003, 0.005, 0.05, 0.07]
 
 	
 
