@@ -6,48 +6,38 @@ import os
 from utils import Utils
 import matplotlib
 import pickle
+import argparse
 matplotlib.use('Agg')
 
 ## get the parameter for any value of beta since we are using the same parameters for all value of beta
 
-def plot_decision_boundary(result_path, beta,plot_posterior=False):
+def plot_decision_boundary(args):
     plt.figure(figsize=(110, 110)) 
     
 
    
 
-    num_tasks_per_batch = 20
-
-    mu = 0.05
-    lamda = 0.07
-
-    d_0 = 5
-
+    
     H0 = 0
 
-    H1 = d_0
-
-    prior = [0.8,0.2]
+    H1 = args.d_0
 
     #params["d_0"]
 
 
-    sigma_h = 1.0
-    sigma_a = 2.5
-
-    ctp = 0#params["ctp"]
-    ctn = 0#params["ctn"]
-    cfp = 1#params["cfp"]
-    cfn = 1#params["cfn"]
-    cm = 0
-    num_bins_fatigue = 20
-    T = 20
-    num_expecation_samples = 100
-
-    w_0 = 15#params["w_0"]
+    
+    ctp = args.ctp
+    ctn = args.ctn
+    cfp = args.cfp
+    cfn = args.cfn
+    num_bins_fatigue = args.num_bins_fatigue
+   
+    
+    
+  
 
 
-    ut = Utils(num_tasks_per_batch, mu, lamda, w_0, sigma_a, H0, H1, prior, d_0, beta, sigma_h, ctp, ctn, cfp, cfn, cm, num_bins_fatigue)
+    ut = Utils(args,H0,H1)
 
 
      # compute the auto_cost for different posterior of the tasks
@@ -96,26 +86,25 @@ def plot_decision_boundary(result_path, beta,plot_posterior=False):
     
     
 
-    path1 = 'decision_boundary/'
+    path1 = 'decision_boundary/beta '+str(args.beta)+'/alpha '+str(args.alpha)+'/gamma_'+str(args.gamma)+'/'
 
     if not os.path.exists(path1):
-
-        os.makedirs(path1)
+        try:
+            os.makedirs(path1,exist_ok=True)
+        
+        except FileExistsError:
+            pass
     
-    path2 = path1+'beta '+str(beta)+'/'
-
-    if not os.path.exists(path2):
-        os.makedirs(path2)
     
 
-    plt.savefig(path2+'decision_boundary.pdf')
+    plt.savefig(path1+'decision_boundary.pdf')
 
     plt.clf()
     plt.close()
 
-    if plot_posterior:
+    if args.plot_posterior:
 
-        mega_obs_path = result_path+'plot_analysis/cost_comparison/beta '+str(beta)+'/all_mega_batch.pkl'
+        mega_obs_path = args.results_path + 'num_tasks '+str(args.num_tasks_per_batch)+'/beta '+str(args.beta)+'/alpha '+str(args.alpha)+'/gamma_'+str(args.gamma)+'/plot_analysis/cost_comparison/'+'/all_mega_batch.pkl'
 
         with open(mega_obs_path,'rb') as file:
             all_mega_obs = pickle.load(file)
@@ -132,7 +121,7 @@ def plot_decision_boundary(result_path, beta,plot_posterior=False):
         plt.ylabel('Posterior H1 Value')
 
     
-        plt.savefig(path2+'posterior_h1_freq.pdf')
+        plt.savefig(path1+'posterior_h1_freq.pdf')
         plt.clf()
         plt.close()
 
@@ -142,14 +131,42 @@ def plot_decision_boundary(result_path, beta,plot_posterior=False):
 
 if __name__=='__main__':
 
-    beta = 5
+    parser = argparse.ArgumentParser(description="Approximate Dynamic Program parameters.")
 
+    parser.add_argument('--beta', type=float, default= 0.5, help='Exponent that influcences the extent to which workload affects the observation channel')
+    parser.add_argument('--alpha',type=float, default=4, help='Exponent that influences the extent to which fatigue affects the observation channel' )
+    parser.add_argument('--num_expectation_samples', type=int, default=10, help='Number of expectation samples to take for the approximate Dynamic Program.')
+    parser.add_argument('--horizon', type=int, default=20, help='The length of the horizon.')
+    parser.add_argument('--d_0',type=float, default= 5, help='The value of d0 in the experiment.')
+    parser.add_argument('--prior',default=[0.8,0.2], help='A list containing the prior of [H0, H1].' )
+    parser.add_argument('--num_tasks_per_batch', type=int, default=20, help='The total number of tasks in a batch.')
+    parser.add_argument('--sigma_a',type=float, default=2.5, help='Automation observation channel variance.')
+    parser.add_argument('--sigma_h', type=float, default=1.0, help='Human observation channel variance.')
+    parser.add_argument('--w_0', type=int, default=15, help='The workload threshold beyond which fatigue recovery does not occur')
+    parser.add_argument('--gamma', type=float, default=0.05, help='The rate at which the fatigue grows')
+    parser.add_argument('--num_bins_fatigue', type=int, default=10, help='The number of bins to be used to discretize fatigue')
+    
+    # Arguments associated with costs
+    parser.add_argument('--ctp',type=float, default=0, help='The cost associated with true positive rate')
+    parser.add_argument('--ctn',type=float, default=0, help='The cost associated with true negative value.')
+    parser.add_argument('--cfp', type=float, default=1.0, help='The cost associated with false positive rates')
+    parser.add_argument('--cfn', type=float, default=1.0, help='The cost associated with false negative rates.')
+    parser.add_argument('--cm', type=float, default=0.0, help='The cost associated with deferrals.')
 
-    result_path = 'results/'
+    parser.add_argument('--wandb_sync', type=str, default='offline',help='whether to sync wandb results to cloud.')
+    parser.add_argument('--use_wandb', type=bool, default=False, help='Whether to use wandb for logging')
+    
+    parser.add_argument('--results_path', type=str, default='results/', help='The name of the directory to save the results')
 
+    parser.add_argument('--run_eval_only', type=bool, default=False)
+    parser.add_argument('--num_eval_runs', type=int, default=10, help="Number of independent runs for monte carlo performance evaluation")
+    
+    parser.add_argument('--plot_posterior', type=bool, default=False, help='Flag whether to plot the posteriors or not')
+
+    args = parser.parse_args()
     
 
-    plot_decision_boundary(result_path, beta,False)
+    plot_decision_boundary(args)
 
 
 
