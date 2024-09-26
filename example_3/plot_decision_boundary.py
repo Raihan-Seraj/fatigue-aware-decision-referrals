@@ -51,7 +51,7 @@ def plot_decision_boundary(args):
     
     plt.plot(posteriors_h1,auto_costs,'*--',label='automation cost',color='red', linewidth=20, markersize=50)
 
-    F_states = np.round(np.linspace(0, 20, num_bins_fatigue + 1), 2)
+    F_states = np.round(np.linspace(0, args.Fmax, args.num_bins_fatigue + 1), 2)
 
     #F_states = [0]
 
@@ -86,7 +86,7 @@ def plot_decision_boundary(args):
     
     
 
-    path1 = 'decision_boundary/beta '+str(args.beta)+'/gamma_'+str(args.gamma)+'/'
+    path1 = 'decision_boundary/beta '+str(args.beta)+'/alpha '+str(args.alpha)+'/gamma_'+str(args.gamma)+'/'
 
     if not os.path.exists(path1):
         try:
@@ -104,7 +104,7 @@ def plot_decision_boundary(args):
 
     if args.plot_posterior:
 
-        mega_obs_path = args.results_path + 'num_tasks '+str(args.num_tasks_per_batch)+'/beta '+str(args.beta)+'/gamma_'+str(args.gamma)+'/plot_analysis/cost_comparison/'+'/all_mega_batch.pkl'
+        mega_obs_path = args.results_path + 'num_tasks '+str(args.num_tasks_per_batch)+'/beta '+str(args.beta)+'/alpha '+str(args.alpha)+'/gamma_'+str(args.gamma)+'/plot_analysis/cost_comparison/'+'/all_mega_batch.pkl'
 
         with open(mega_obs_path,'rb') as file:
             all_mega_obs = pickle.load(file)
@@ -134,10 +134,11 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser(description="Approximate Dynamic Program parameters.")
 
     parser.add_argument('--beta', type=float, default= 0.5, help='Exponent that influcences the extent to which workload affects the observation channel')
+    parser.add_argument('--alpha', type=float, default= 0.5, help='Exponent that influcences the extent to which fatigue affects the observation channel')
     parser.add_argument('--num_expectation_samples', type=int, default=10, help='Number of expectation samples to take for the approximate Dynamic Program.')
     parser.add_argument('--horizon', type=int, default=20, help='The length of the horizon.')
     parser.add_argument('--d_0',type=float, default= 5, help='The value of d0 in the experiment.')
-    parser.add_argument('--prior',default=[0.8,0.2], help='A list containing the prior of [H0, H1].' )
+    parser.add_argument('--prior',default=[0.8,0.2], nargs=2, type=float, help='A list containing the prior of [H0, H1].' )
     parser.add_argument('--num_tasks_per_batch', type=int, default=20, help='The total number of tasks in a batch.')
     parser.add_argument('--sigma_a',type=float, default=2.5, help='Automation observation channel variance.')
     parser.add_argument('--sigma_h', type=float, default=1.0, help='Human observation channel variance.')
@@ -161,7 +162,7 @@ if __name__=='__main__':
     parser.add_argument('--num_eval_runs', type=int, default=10, help="Number of independent runs for monte carlo performance evaluation")
     
     parser.add_argument('--plot_posterior', type=bool, default=False, help='Flag whether to plot the posteriors or not')
-
+    parser.add_argument('--Fmax', type=int, default=20,help='Max value for the fatigue level')
     args = parser.parse_args()
     
 

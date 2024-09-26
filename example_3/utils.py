@@ -66,9 +66,11 @@ class Utils(object):
 
         self.num_tasks_per_batch = self.args.num_tasks_per_batch
         self.gamma  = self.args.gamma
+        self.alpha = self.args.alpha
         self.sigma_a = self.args.sigma_a
         self.H0 = H0
         self.H1 = H1
+        self.Fmax = self.args.Fmax
         self.prior = self.args.prior 
         self.d_0 = self.args.d_0
         self.beta = self.args.beta
@@ -167,10 +169,9 @@ class Utils(object):
 
         #import ipdb;ipdb.set_trace()
 
-        tau = self.d_0 * (1/(1+np.log(1+F_t)+self.beta * np.log(1+w_t))) \
-        
-        + (self.sigma_h**2/(self.d_0 * (1/(1+np.log(1+F_t)+self.beta * np.log(1+w_t))))) * np.log((self.cfp - self.ctn) * self.prior[0] / ((self.cfn - self.ctp) * self.prior[1]))
-        
+        tau = self.d_0/(2*(1+self.alpha*np.log(1+F_t)+self.beta*np.log(1+w_t))) + \
+        ((self.sigma_h**2 * (1+self.alpha*np.log(1+F_t) + self.beta * np.log(1+w_t)))/self.d_0) * \
+        np.log(((self.cfp-self.ctn)/(self.cfn-self.ctp))*(self.prior[0]/self.prior[1]))
         
 
 
@@ -203,7 +204,7 @@ class Utils(object):
 
         # computing true positive probability of the human
         P_h_tp = 1 - norm.cdf(
-            (tau_wf - self.d_0 * (1/(1+np.log(1+F_t)+self.beta*np.log(1+w_t)))) / self.sigma_h,
+            (tau_wf - self.d_0 * (1/(1+self.alpha* np.log(1+F_t)+self.beta*np.log(1+w_t)))) / self.sigma_h,
             loc=0,
             scale=1,
         )
@@ -301,7 +302,7 @@ class Utils(object):
         # computing true positive probability of the human
 
         P_h_tp = 1 - norm.cdf(
-            (tau_wf - self.d_0 * (1/(1+np.log(1+F_t)+self.beta*np.log(1+w_t)))) / self.sigma_h,
+            (tau_wf - self.d_0 * (1/(1+self.alpha*np.log(1+F_t)+self.beta*np.log(1+w_t)))) / self.sigma_h,
             loc=0,
             scale=1,
         )
@@ -433,7 +434,7 @@ class Utils(object):
     '''
     def discretize_fatigue_state(self,F):
 
-        bins = np.linspace(0, 20, self.num_bins_fatigue + 1)
+        bins = np.linspace(0, self.Fmax, self.num_bins_fatigue + 1)
 
         discretized_data = np.digitize(F, bins)
 

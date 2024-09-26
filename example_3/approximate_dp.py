@@ -117,7 +117,7 @@ Function that runs dynamic program for different values of beta
 def run_dp_parallel_beta(args, H0, H1):
 
     num_tasks_per_batch = args.num_tasks_per_batch
-    
+    alpha = args.alpha
     gamma = args.gamma
     sigma_a = args.sigma_a
     prior = args.prior
@@ -137,7 +137,7 @@ def run_dp_parallel_beta(args, H0, H1):
     ut = Utils(args, H0, H1)
 
     if args.use_wandb:
-        run_info = wandb.init(project="Example 3",name="beta "+str(beta)+' alpha '+str(alpha)+' gamma '+str(gamma),settings=wandb.Settings(start_method="fork"), mode=args.wandb_sync)
+        run_info = wandb.init(project="Example 3",name="beta "+str(beta)+'alpha '+str(alpha)+' gamma '+str(gamma),settings=wandb.Settings(start_method="fork"), mode=args.wandb_sync)
     
 
     param_values = {
@@ -151,7 +151,9 @@ def run_dp_parallel_beta(args, H0, H1):
 
         "d_0": d_0,
 
-        "beta": beta, 
+        "beta": beta,
+
+        "alpha": alpha,  
 
         "sigma_h": sigma_h, 
 
@@ -180,7 +182,7 @@ def run_dp_parallel_beta(args, H0, H1):
         run_info.config.update(param_values)
 
 
-    path_name = args.results_path + 'num_tasks '+str(num_tasks_per_batch)+'/beta '+str(beta)+'/gamma_'+str(gamma)+'/'
+    path_name = args.results_path + 'num_tasks '+str(num_tasks_per_batch)+'/beta '+str(beta)+'/alpha'+str(alpha)+'/gamma_'+str(gamma)+'/'
 
     if not os.path.exists(path_name):
         try:
@@ -232,10 +234,12 @@ def main():
     parser = argparse.ArgumentParser(description="Approximate Dynamic Program parameters.")
 
     parser.add_argument('--beta', type=float, default= 0.5, help='Exponent that influcences the extent to which workload affects the observation channel')
+    parser.add_argument('--alpha', type=float, default= 0.5, help='Exponent that influcences the extent to which fatigue affects the observation channel')
+    
     parser.add_argument('--num_expectation_samples', type=int, default=10, help='Number of expectation samples to take for the approximate Dynamic Program.')
     parser.add_argument('--horizon', type=int, default=20, help='The length of the horizon.')
     parser.add_argument('--d_0',type=float, default= 5, help='The value of d0 in the experiment.')
-    parser.add_argument('--prior',default=[0.8,0.2], help='A list containing the prior of [H0, H1].' )
+    parser.add_argument('--prior',default=[0.8,0.2], nargs=2, type=float, help='A list containing the prior of [H0, H1].' )
     parser.add_argument('--num_tasks_per_batch', type=int, default=20, help='The total number of tasks in a batch.')
     parser.add_argument('--sigma_a',type=float, default=2.5, help='Automation observation channel variance.')
     parser.add_argument('--sigma_h', type=float, default=1.0, help='Human observation channel variance.')
@@ -256,7 +260,7 @@ def main():
 
     parser.add_argument('--run_eval_only', type=bool, default=False)
     parser.add_argument('--num_eval_runs', type=int, default=10, help="Number of independent runs for monte carlo performance evaluation")
-
+    parser.add_argument('--Fmax', type=int, default=20,help='Max value for the fatigue level')
     args = parser.parse_args()
 
 
