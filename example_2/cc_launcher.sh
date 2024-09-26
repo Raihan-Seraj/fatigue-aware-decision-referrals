@@ -16,16 +16,16 @@ do
             echo "#SBATCH --account=def-adityam" >> temprun.sh
             echo "#SBATCH --output=\"/scratch/raihan08/slurm-%j.out\"" >> temprun.sh
             # echo "#SBATCH --job-name=TMBIBTEX" >> temprun.sh
-            echo "#SBATCH --cpus-per-task=8"  >> temprun.sh   # ask for 8 CPUs
+            echo "#SBATCH --cpus-per-task=4"  >> temprun.sh   # ask for 8 CPUs
             #echo "#SBATCH --gres=gpu:2" >> temprun.sh         # ask for 2 GPU
             # echo "#SBATCH --gres=gpu:1" >> temprun.sh         # ask for 2 GPU
-            echo "#SBATCH --mem=64G" >> temprun.sh            # ask for 64 GB RAM
-            echo "#SBATCH --time=24:00:00" >> temprun.sh
+            echo "#SBATCH --mem=32G" >> temprun.sh            # ask for 64 GB RAM
+            echo "#SBATCH --time=30:00:00" >> temprun.sh
             echo "source ../../thesis/bin/activate" >>temprun.sh
-            echo "wandb login e0273d1f1df1e15bffa4b6bca33edb700bc9d54c" >>temprun.s
+            #echo "wandb login e0273d1f1df1e15bffa4b6bca33edb700bc9d54c" >>temprun.s
             echo "#SBATCH --mail-user=raihanseraj@gmail.com" >> temprun.sh
             echo "#SBATCH --mail-type=AL" >> temprun.sh
-            echo "python approximate_dp.py --alpha ${alpha} --mu ${mu} --lamda ${lamda} --num_expectation_samples 500" >> temprun.sh
+            echo "python approximate_dp.py --alpha ${alpha} --mu ${mu} --lamda ${lamda} --num_expectation_samples 500 --num_eval_runs 500" >> temprun.sh
             eval "sbatch temprun.sh"
             rm temprun.sh
 
