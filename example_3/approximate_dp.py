@@ -182,7 +182,7 @@ def run_dp_parallel_beta(args, H0, H1):
         run_info.config.update(param_values)
 
 
-    path_name = args.results_path + 'num_tasks '+str(num_tasks_per_batch)+'/beta '+str(beta)+'/alpha'+str(alpha)+'/gamma_'+str(gamma)+'/'
+    path_name = args.results_path + 'num_tasks '+str(num_tasks_per_batch)+'/beta '+str(beta)+'/alpha '+str(alpha)+'/gamma_'+str(gamma)+'/'
 
     if not os.path.exists(path_name):
         try:
