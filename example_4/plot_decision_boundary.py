@@ -47,7 +47,7 @@ def plot_decision_boundary(args):
     
     plt.plot(posteriors_h1,auto_costs,'*--',label='automation cost',color='red', linewidth=20, markersize=50)
 
-    F_states = np.round(np.linspace(0, 1, num_bins_fatigue + 1), 2)
+    F_states = np.round(np.linspace(0, args.Fmax, num_bins_fatigue + 1), 2)
 
     #F_states = [0]
 
@@ -88,7 +88,7 @@ def plot_decision_boundary(args):
 
         os.makedirs(path1)
     
-    path2 = path1+'beta '+str(args.beta)+'/' +'alpha/'+str(args.alpha)+'mu_'+str(args.mu)+'_lambda_'+str(args.lamda)+'_'
+    path2 = path1+'beta '+str(args.beta)+'/' +'alpha '+str(args.alpha)+'_gamma_'+str(args.gamma)+'/'
 
     if not os.path.exists(path2):
         os.makedirs(path2)
@@ -133,9 +133,8 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser(description="Approximate Dynamic Program parameters.")
 
     parser.add_argument('--beta', type=float, default= 0.5, help='Exponent that influcences the extent to which workload affects the observation channel')
-    parser.add_argument('--alpha',type=float, default=4, help='Exponent that influences the extent to which fatigue affects the observation channel' )
-    parser.add_argument('--mu', type=float, default=0.05,  help='Decay rate of fatigue.')
-    parser.add_argument('--lamda', type=float, default=0.07,  help='Growth rate of fatigue.')
+    parser.add_argument('--alpha',type=float, default=0.05, help='Exponent that influences the extent to which fatigue affects the observation channel' )
+    parser.add_argument('--gamma', type=float, default=0.05,  help='Growth rate of fatigue')
     parser.add_argument('--num_expectation_samples', type=int, default=10, help='Number of expectation samples to take for the approximate Dynamic Program.')
     parser.add_argument('--horizon', type=int, default=20, help='The length of the horizon.')
     parser.add_argument('--d_0',type=float, default= 5, help='The value of d0 in the experiment.')
@@ -161,6 +160,7 @@ if __name__=='__main__':
     parser.add_argument('--run_eval_only', type=bool, default=False)
     parser.add_argument('--num_eval_runs', type=int, default=10, help="Number of independent runs for monte carlo performance evaluation")
     parser.add_argument('--plot_posterior', type=bool, default=False, help='Flag whether to plot the posteriors or not')
+    parser.add_argument('--Fmax', type=int, default=200, help='Maximum value of Fatigue')
     args = parser.parse_args()
 
     plot_decision_boundary(args)

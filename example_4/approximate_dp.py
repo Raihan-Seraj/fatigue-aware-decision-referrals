@@ -138,7 +138,7 @@ def run_dp_parallel_beta(args, H0, H1):
     ut = Utils(args, H0, H1)
 
     if args.use_wandb:
-        run_info = wandb.init(project="Example 2",name="beta "+str(beta)+' alpha '+str(alpha)+' mu '+str(mu)+' lambda '+str(lamda),settings=wandb.Settings(start_method="fork"), mode=args.wandb_sync)
+        run_info = wandb.init(project="Example 2",name="beta "+str(beta)+' alpha '+str(alpha)+' gamma '+str(gamma),settings=wandb.Settings(start_method="fork"), mode=args.wandb_sync)
     
 
     param_values = {
@@ -239,8 +239,8 @@ def main():
     parser = argparse.ArgumentParser(description="Approximate Dynamic Program parameters.")
 
     parser.add_argument('--beta', type=float, default= 0.5, help='Exponent that influcences the extent to which workload affects the observation channel')
-    parser.add_argument('--alpha',type=float, default=4, help='Exponent that influences the extent to which fatigue affects the observation channel' )
-    parser.add_argument('--gamma',type=float, defalut=0.05, help='The growth rate of unrecoverable fatigue')
+    parser.add_argument('--alpha',type=float, default=0.05, help='Exponent that influences the extent to which fatigue affects the observation channel' )
+    parser.add_argument('--gamma',type=float, default=0.05, help='The growth rate of unrecoverable fatigue')
     parser.add_argument('--num_expectation_samples', type=int, default=10, help='Number of expectation samples to take for the approximate Dynamic Program.')
     parser.add_argument('--horizon', type=int, default=20, help='The length of the horizon.')
     parser.add_argument('--d_0',type=float, default= 5, help='The value of d0 in the experiment.')
@@ -265,7 +265,7 @@ def main():
 
     parser.add_argument('--run_eval_only', type=bool, default=False)
     parser.add_argument('--num_eval_runs', type=int, default=10, help="Number of independent runs for monte carlo performance evaluation")
-    parser.add_argument('--Fmax', type=int, default=20, help='Maximum value of Fatigue')
+    parser.add_argument('--Fmax', type=int, default=200, help='Maximum value of Fatigue')
 
     args = parser.parse_args()
 

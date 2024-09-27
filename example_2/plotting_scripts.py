@@ -54,7 +54,7 @@ def create_performance_table(beta,alphas,mus,lamdas,num_tasks_per_batch, result_
 
 					
 					print("File not found, for alpha "+str(alpha), ' beta '+str(beta)+' mu '+str(mu)+' lamda '+str(lamda))
-					continue 
+					#continue 
 					
 
 
@@ -75,7 +75,7 @@ def create_performance_table(beta,alphas,mus,lamdas,num_tasks_per_batch, result_
 				
 				except FileNotFoundError:
 					print("File not found skipping to the next file")
-					continue 
+					#continue 
 
 				
 				human_cost_per_wl_per_run_adp = [all_run_human_cost_adp[i]/(sum(all_run_human_wl_adp['Run-'+str(i+1)])) for i in range(len(all_run_human_cost_adp))]
@@ -136,7 +136,7 @@ def create_performance_table(beta,alphas,mus,lamdas,num_tasks_per_batch, result_
 
 				
 
-				new_row  = pd.DataFrame([[beta, alpha, mu, lamda, 
+				new_row  = pd.DataFrame([[str(beta), str(alpha), str(mu), str(lamda), 
 								str(expected_total_human_cost_adp)+'$\pm$'+str(std_total_human_cost_adp),
 								str(expected_total_human_cost_k)+'$\pm$'+str(std_total_human_cost_k),
 								str(expected_human_cost_per_wl_adp)+'$\pm$'+str(std_human_cost_per_wl_adp),
@@ -195,14 +195,15 @@ def plot_human_perf_vs_taskload(beta, result_path):
 
 
 
-if __name__=='__main__':
-      
+
+def create_complete_performance_table():
+
 	result_path = 'results/'
 	num_tasks_per_batch=20
 	
 	beta = 0.5
 
-	alphas = [1.0, 2.0, 4.0, 7.0, 9.0]
+	alphas = [1.0, 2.0, 5.0, 7.0, 9.0]
 
 	mus = [0.1, 0.003, 0.05, 0.07]
 
@@ -210,3 +211,210 @@ if __name__=='__main__':
 
 	
 	create_performance_table(beta,alphas, mus, lamdas, num_tasks_per_batch, result_path)
+
+	return
+
+
+def plot_taskload_comparison(result_path, num_tasks, beta, alpha, mu, lamda):
+
+	path = result_path + 'num_tasks '+str(num_tasks)+'/beta '+str(beta)+'/alpha '+str(alpha)+'/mu_'+str(mu)+'_lambda_'+str(lamda)+'/plot_analysis/'
+
+	adp_path = path + 'all_taskload_adp.pkl'
+
+	k_path = path + 'all_taskload_k.pkl'
+
+	## loding the files
+
+	with open(adp_path, 'rb') as file1:
+
+		data_adp = pickle.load(file1)
+	
+	with open(k_path, 'rb') as file2:
+		data_k = pickle.load(file2)
+	 
+	median_workload_adp = np.median(data_adp, axis=0)
+
+	q1_adp = np.percentile(data_adp, q = 25, axis=0)
+
+	q3_adp = np.percentile(data_adp, q=75, axis=0)
+
+
+	median_workload_k = np.median(data_k, axis=0)
+
+	q1_k = np.percentile(data_k, q = 25, axis=0)
+
+	q3_k = np.percentile(data_k, q=75, axis=0)
+
+
+	simulation_time = np.arange(1, 21)
+
+	
+	plt.step(simulation_time, median_workload_adp, label='Approximate Dynamic Program', color='blue', where='mid')
+
+	
+	plt.fill_between(simulation_time, q1_adp, q3_adp, step='mid', alpha=0.2, color='blue')
+
+
+	
+	plt.step(simulation_time, median_workload_k, label='Algorithm 1 in [3]', color='black', where='mid')
+
+
+	plt.fill_between(simulation_time, q1_k, q3_k, step='mid', alpha=0.2, color='black')
+
+	plt.grid(True)
+	plt.xlabel('Time Steps')
+	plt.ylabel('Taskload')
+
+	tick_positions = [i+1 for i in range(20)]
+
+	tick_labels = [str(i+1) for i in range(20) ]
+
+	plt.xticks(tick_positions,tick_labels)
+
+	plt.legend()
+	plt.savefig(path+'Median-Taskload-Plot-Comparison.pdf')
+	plt.close()
+	plt.clf()
+
+
+
+def plot_fatigue_comparison(result_path, num_tasks, beta, alpha, mu, lamda):
+
+	path = result_path + 'num_tasks '+str(num_tasks)+'/beta '+str(beta)+'/alpha '+str(alpha)+'/mu_'+str(mu)+'_lambda_'+str(lamda)+'/plot_analysis/'
+
+	adp_path = path + 'all_fatigue_adp.pkl'
+
+	k_path = path + 'all_fatigue_k.pkl'
+
+	## loding the files
+
+	with open(adp_path, 'rb') as file1:
+
+		data_adp = pickle.load(file1)
+	
+	with open(k_path, 'rb') as file2:
+		data_k = pickle.load(file2)
+	 
+	median_fatigue_adp = np.median(data_adp, axis=0)
+
+	q1_adp = np.percentile(data_adp, q = 25, axis=0)
+
+	q3_adp = np.percentile(data_adp, q=75, axis=0)
+
+
+	median_fatigue_k = np.median(data_k, axis=0)
+
+	q1_k = np.percentile(data_k, q = 25, axis=0)
+
+	q3_k = np.percentile(data_k, q=75, axis=0)
+
+
+	simulation_time = np.arange(1, 21)
+
+	
+	plt.step(simulation_time, median_fatigue_adp, label='Approximate Dynamic Program', color='blue', where='mid')
+
+	
+	plt.fill_between(simulation_time, q1_adp, q3_adp, step='mid', alpha=0.2, color='blue')
+
+
+	
+	plt.step(simulation_time, median_fatigue_k, label='Algorithm 1 in [3]', color='black', where='mid')
+
+
+	plt.fill_between(simulation_time, q1_k, q3_k, step='mid', alpha=0.2, color='black')
+
+
+
+
+	plt.grid(True)
+	plt.xlabel('Time Steps')
+	plt.ylabel('Fatigue')
+
+	tick_positions = [i+1 for i in range(20)]
+
+	tick_labels = [str(i+1) for i in range(20) ]
+
+	plt.xticks(tick_positions,tick_labels)
+
+
+	plt.legend()
+	plt.savefig(path+'Median-Fatigue-Plot-Comparison.pdf')
+	plt.close()
+	plt.clf()
+
+
+def plot_performance(result_path, num_tasks, beta, alpha, mu, lamda):
+
+	path=result_path + 'num_tasks '+str(num_tasks)+'/beta '+str(beta)+'/alpha '+str(alpha)+'/mu_'+str(mu)+'_lambda_'+str(lamda)+'/plot_analysis/cost_comparison/'
+
+	auto_cost_adp_path = path +'all_auto_cost_adp.npy'
+
+	hum_cost_adp_path = path  + 'all_human_cost_adp.npy'
+
+	auto_cost_k_path = path +'all_auto_cost_k.npy'
+
+	hum_cost_k_path = path  + 'all_human_cost_k.npy'
+
+
+	auto_cost_adp = np.load(auto_cost_adp_path)
+
+	human_cost_adp = np.load(hum_cost_adp_path)
+
+	auto_cost_k = np.load(auto_cost_k_path)
+	human_cost_k = np.load(hum_cost_k_path)
+
+	total_cost_adp = auto_cost_adp + human_cost_adp
+	total_cost_k = auto_cost_k + human_cost_k
+
+
+	all_arrays = {'AutoCost-ADP':auto_cost_adp, 'AutoCost-Alg:1':auto_cost_k, 'HumanCost-ADP':human_cost_adp, 'HumanCost-Alg:1':human_cost_k, 'TotalCost-ADP':total_cost_adp, 'TotalCost-Alg:1':total_cost_k
+			   
+			   }
+
+	df = pd.DataFrame(all_arrays,columns=['AutoCost-ADP','AutoCost-Alg:1', 'HumanCost-ADP','HumanCost-Alg:1','TotalCost-ADP','TotalCost-Alg:1'])
+	
+	df_tc= df[['TotalCost-ADP', 'TotalCost-Alg:1']].melt(var_name='Category', value_name='Costs')
+
+	df_hc= df[['HumanCost-ADP', 'HumanCost-Alg:1']].melt(var_name='Category', value_name='Costs')
+
+	df_ac= df[['AutoCost-ADP', 'AutoCost-Alg:1']].melt(var_name='Category', value_name='Costs')
+	
+	
+	clr = sns.color_palette("hls", 8)
+
+	figs, axes = plt.subplots(1,3,figsize=(15,5))
+
+	sns.boxplot(x='Category', y='Costs',hue='Category',data=df_ac, ax=axes[0])
+	sns.boxplot(x='Category', y='Costs',hue='Category',data=df_hc, ax=axes[1])
+	sns.boxplot(x='Category', y='Costs',hue='Category',data=df_tc, ax=axes[2])
+	plt.savefig(path+'BoxPlot-Cost-Comparison.pdf')
+
+	return
+
+
+
+
+if __name__=='__main__':
+
+	#create_complete_performance_table()
+
+
+      
+	result_path = 'results/'
+	
+	num_tasks=20
+	
+	beta=0.5
+	
+	alpha=1.0
+	
+	mu=0.05
+	
+	lamda=0.07
+
+
+	#plot_taskload_comparison(result_path, num_tasks, beta, alpha, mu, lamda)
+	#plot_fatigue_comparison(result_path, num_tasks, beta, alpha, mu, lamda)
+
+	plot_performance(result_path, num_tasks, beta, alpha, mu, lamda)
