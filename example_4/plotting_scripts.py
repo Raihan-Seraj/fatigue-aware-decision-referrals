@@ -7,7 +7,7 @@ import seaborn as sns
 
 
 
-def create_performance_table(beta,alphas,mus,lamdas,num_tasks_per_batch, result_path):
+def create_performance_table(alphas, betas, gammas,num_tasks_per_batch, result_path):
 
 	result_path = result_path + 'num_tasks '+str(num_tasks_per_batch)+'/'
 
@@ -15,7 +15,7 @@ def create_performance_table(beta,alphas,mus,lamdas,num_tasks_per_batch, result_
 
 	round_decimal_places=3
       
-	final_data = pd.DataFrame(columns=['Beta','Alpha','Mu','Lambda', 'Expected Total Human Cost-ADP', ' Expected Total Human Cost-K','Expected Human Cost Per Taskload-ADP','Expected Human Cost Per Taskload-K',
+	final_data = pd.DataFrame(columns=['Alpha','Beta','Gamma', 'Expected Total Human Cost-ADP', ' Expected Total Human Cost-K','Expected Human Cost Per Taskload-ADP','Expected Human Cost Per Taskload-K',
 										'Expected Total Automation Cost-ADP','Expected Total Automation Cost-K', 'Expected Automation Cost Per Taskload-ADP', 'Expected Automation Cost Per Taskload-K',
 										'Expected Total Deferred Cost-ADP','Expected Total Deferred Cost-K',
 										'Expected Total Cost-ADP','Expected Total Cost-K', 'Expected Taskload of the Human-ADP','Expected Taskload of the Human-K'])
@@ -24,21 +24,21 @@ def create_performance_table(beta,alphas,mus,lamdas,num_tasks_per_batch, result_
 
 	for alpha in alphas:
 
-		for mu in mus:
+		for beta in betas:
 
-			for lamda in lamdas:
+			for gamma in gammas:
 
-				all_run_human_cost_adp_path = result_path + 'beta '+str(beta)+'/alpha '+str(alpha)+'/mu_'+str(mu)+'_lambda_'+str(lamda)+'/plot_analysis/cost_comparison/all_human_cost_adp.npy'
+				all_run_human_cost_adp_path = result_path + 'beta '+str(beta)+'/alpha '+str(alpha)+'/gamma_'+str(gamma)+'/plot_analysis/cost_comparison/all_human_cost_adp.npy'
 
-				all_run_human_cost_k_path = result_path  + 'beta '+str(beta)+'/alpha '+str(alpha)+'/mu_'+str(mu)+'_lambda_'+str(lamda)+'/plot_analysis/cost_comparison/all_human_cost_k.npy'
+				all_run_human_cost_k_path = result_path  + 'beta '+str(beta)+'/alpha '+str(alpha)+'/gamma_'+str(gamma)+'/plot_analysis/cost_comparison/all_human_cost_k.npy'
 
-				all_run_automation_cost_adp_path = result_path + 'beta '+str(beta)+'/alpha '+str(alpha)+'/mu_'+str(mu)+'_lambda_'+str(lamda)+'/plot_analysis/cost_comparison/all_auto_cost_adp.npy'
+				all_run_automation_cost_adp_path = result_path + 'beta '+str(beta)+'/alpha '+str(alpha)+'/gamma_'+str(gamma)+'/plot_analysis/cost_comparison/all_auto_cost_adp.npy'
 
-				all_run_automation_cost_k_path = result_path + 'beta '+str(beta)+'/alpha '+str(alpha)+'/mu_'+str(mu)+'_lambda_'+str(lamda)+'/plot_analysis/cost_comparison/all_auto_cost_k.npy'
+				all_run_automation_cost_k_path = result_path + 'beta '+str(beta)+'/alpha '+str(alpha)+'/gamma_'+str(gamma)+'/plot_analysis/cost_comparison/all_auto_cost_k.npy'
 
 
-				all_run_deferred_cost_k_path = result_path + 'beta '+str(beta)+'/alpha '+str(alpha)+'/mu_'+str(mu)+'_lambda_'+str(lamda)+'/plot_analysis/cost_comparison/all_deferred_cost_k.npy'
-				all_run_deferred_cost_adp_path = result_path + 'beta '+str(beta)+'/alpha '+str(alpha)+'/mu_'+str(mu)+'_lambda_'+str(lamda)+'/plot_analysis/cost_comparison/all_deferred_cost_adp.npy'
+				all_run_deferred_cost_k_path = result_path + 'beta '+str(beta)+'/alpha '+str(alpha)+'/gamma_'+str(gamma)+'/plot_analysis/cost_comparison/all_deferred_cost_k.npy'
+				all_run_deferred_cost_adp_path = result_path + 'beta '+str(beta)+'/alpha '+str(alpha)+'/gamma_'+str(gamma)+'/plot_analysis/cost_comparison/all_deferred_cost_adp.npy'
 
 
 				try:
@@ -53,15 +53,15 @@ def create_performance_table(beta,alphas,mus,lamdas,num_tasks_per_batch, result_
 				except FileNotFoundError:
 
 					
-					print("File not found, for alpha "+str(alpha), ' beta '+str(beta)+' mu '+str(mu)+' lamda '+str(lamda))
+					print("File not found, for alpha "+str(alpha), ' beta '+str(beta)+' gamma '+str(gamma))
 					continue 
 					
 
 
 				# now loading the taskload 
-				all_run_human_tl_adp_path = result_path + 'beta '+str(beta)+'/alpha '+str(alpha)+'/mu_'+str(mu)+'_lambda_'+str(lamda)+'/plot_analysis/cost_comparison/all_human_wl_adp.pkl'
+				all_run_human_tl_adp_path = result_path + 'beta '+str(beta)+'/alpha '+str(alpha)+'/gamma_'+str(gamma)+'/plot_analysis/cost_comparison/all_human_wl_adp.pkl'
 
-				all_run_human_tl_k_path = result_path + 'beta '+str(beta)+'/alpha '+str(alpha)+'/mu_'+str(mu)+'_lambda_'+str(lamda)+'/plot_analysis/cost_comparison/all_human_wl_k.pkl'
+				all_run_human_tl_k_path = result_path + 'beta '+str(beta)+'/alpha '+str(alpha)+'/gamma_'+str(gamma)+'/plot_analysis/cost_comparison/all_human_wl_k.pkl'
 
 				
 				try:
@@ -136,7 +136,7 @@ def create_performance_table(beta,alphas,mus,lamdas,num_tasks_per_batch, result_
 
 				
 
-				new_row  = pd.DataFrame([[beta, alpha, mu, lamda, 
+				new_row  = pd.DataFrame([[str(alpha), str(beta), str(gamma), 
 								str(expected_total_human_cost_adp)+'$\pm$'+str(std_total_human_cost_adp),
 								str(expected_total_human_cost_k)+'$\pm$'+str(std_total_human_cost_k),
 								str(expected_human_cost_per_wl_adp)+'$\pm$'+str(std_human_cost_per_wl_adp),
@@ -157,7 +157,7 @@ def create_performance_table(beta,alphas,mus,lamdas,num_tasks_per_batch, result_
 				
 				
 	
-	final_data.to_csv(result_path+'beta '+str(beta)+'/refined_performance_table.csv')
+	final_data.to_csv(result_path+'/refined_performance_table.csv')
 	
 	return
 
@@ -200,13 +200,13 @@ if __name__=='__main__':
 	result_path = 'results/'
 	num_tasks_per_batch=20
 	
-	beta = 0.5
+	alphas=[0.05, 0.01, 0.03]
 
-	alphas = [1.0, 2.0, 4.0, 7.0, 9.0]
+	betas = [0.5, 1.0]
 
-	mus = [0.1, 0.003, 0.05, 0.07]
-
-	lamdas = [0.1,0.03,0.07, 0.007]
+	gammas = [0.05, 0.08, 0.02, 0.09, 0.3]
 
 	
-	create_performance_table(beta,alphas, mus, lamdas, num_tasks_per_batch, result_path)
+
+	
+	create_performance_table(alphas, betas, gammas, num_tasks_per_batch, result_path)
