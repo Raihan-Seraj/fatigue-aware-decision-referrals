@@ -265,7 +265,7 @@ def main():
 
     parser.add_argument('--run_eval_only', type=bool, default=False)
     parser.add_argument('--num_eval_runs', type=int, default=10, help="Number of independent runs for monte carlo performance evaluation")
-    parser.add_argument('--Fmax', type=int, default=200, help='Maximum value of Fatigue')
+    parser.add_argument('--Fmax', type=int, default=100, help='Maximum value of Fatigue')
 
     args = parser.parse_args()
 

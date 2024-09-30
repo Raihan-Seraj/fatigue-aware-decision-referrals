@@ -133,11 +133,11 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser(description="Approximate Dynamic Program parameters.")
 
     parser.add_argument('--beta', type=float, default= 0.5, help='Exponent that influcences the extent to which workload affects the observation channel')
-    parser.add_argument('--alpha',type=float, default=0.05, help='Exponent that influences the extent to which fatigue affects the observation channel' )
+    parser.add_argument('--alpha',type=float, default=0.5, help='Exponent that influences the extent to which fatigue affects the observation channel' )
     parser.add_argument('--gamma', type=float, default=0.05,  help='Growth rate of fatigue')
     parser.add_argument('--num_expectation_samples', type=int, default=10, help='Number of expectation samples to take for the approximate Dynamic Program.')
     parser.add_argument('--horizon', type=int, default=20, help='The length of the horizon.')
-    parser.add_argument('--d_0',type=float, default= 5, help='The value of d0 in the experiment.')
+    parser.add_argument('--d_0',type=float, default= 2, help='The value of d0 in the experiment.')
     parser.add_argument('--prior',default=[0.8,0.2], help='A list containing the prior of [H0, H1].' )
     parser.add_argument('--num_tasks_per_batch', type=int, default=20, help='The total number of tasks in a batch.')
     parser.add_argument('--sigma_a',type=float, default=2.5, help='Automation observation channel variance.')
@@ -160,7 +160,7 @@ if __name__=='__main__':
     parser.add_argument('--run_eval_only', type=bool, default=False)
     parser.add_argument('--num_eval_runs', type=int, default=10, help="Number of independent runs for monte carlo performance evaluation")
     parser.add_argument('--plot_posterior', type=bool, default=False, help='Flag whether to plot the posteriors or not')
-    parser.add_argument('--Fmax', type=int, default=200, help='Maximum value of Fatigue')
+    parser.add_argument('--Fmax', type=int, default=100, help='Maximum value of Fatigue')
     args = parser.parse_args()
 
     plot_decision_boundary(args)
