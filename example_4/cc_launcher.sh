@@ -25,7 +25,7 @@ do
             #echo "wandb login e0273d1f1df1e15bffa4b6bca33edb700bc9d54c" >>temprun.s
             echo "#SBATCH --mail-user=raihanseraj@gmail.com" >> temprun.sh
             echo "#SBATCH --mail-type=AL" >> temprun.sh
-            echo "python approximate_dp.py --alpha ${alpha} --beta ${beta} --gamma ${gamma} --num_expectation_samples 500 --num_eval_runs 500 --Fmax 300 --num_bins_fatigue 30" >> temprun.sh
+            echo "python approximate_dp.py --alpha ${alpha} --beta ${beta} --gamma ${gamma} --num_expectation_samples 500 --num_eval_runs 500 --Fmax 100 --num_bins_fatigue 20" >> temprun.sh
             eval "sbatch temprun.sh"
             rm temprun.sh
 
