@@ -132,6 +132,7 @@ def run_dp_parallel_beta(args, H0, H1):
     cm = args.cm
     num_bins_fatigue=args.num_bins_fatigue
     num_expectation_samples = args.num_expectation_samples
+    Fmax = args.Fmax
     T = args.horizon
 
     
@@ -178,8 +179,9 @@ def run_dp_parallel_beta(args, H0, H1):
 
         "T": T, 
 
-        "num_expectation_samples": num_expectation_samples  
-    
+        "num_expectation_samples": num_expectation_samples,  
+
+        "Fmax": Fmax
 
     }
 

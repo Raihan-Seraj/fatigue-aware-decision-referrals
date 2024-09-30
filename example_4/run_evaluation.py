@@ -122,6 +122,8 @@ class Evaluations(object):
             ## fixme
             future_cost = V_bar[F_tp1_idx]
 
+            ## checked() whether cstar + future_cost is equal to auto+hum+deff cost + future cost
+            
             total_cost = cstar + future_cost
             
             all_cost.append(total_cost)
@@ -219,7 +221,8 @@ class Evaluations(object):
                 wl_k, deferred_idx_k = self.compute_kesavs_algo(batched_posterior_h0, batched_posterior_h1, F_k, ut)
 
                 wl_adp, deferred_idx_adp = self.compute_adp_solution(batched_posterior_h0,batched_posterior_h1,F_adp, V_bar,ut)
-
+                
+                
                 
                 if self.args.use_wandb:
 
