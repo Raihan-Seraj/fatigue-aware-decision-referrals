@@ -24,12 +24,12 @@ Args:
 '''
 
 
-def approximate_dynamic_program(T, num_expectation_samples,ut):
+def approximate_dynamic_program(T, num_expectation_samples,ut, args):
 
     
 
     # number of possible fatigue states
-    F_states = np.round(np.linspace(0, 1, ut.num_bins_fatigue + 1), 2)
+    F_states = np.round(np.linspace(0, args.Fmax, ut.num_bins_fatigue + 1), 2)
 
     # initializing the value of V_bar
     V_bar = {t: np.zeros((ut.num_bins_fatigue + 1)) for t in range(T + 2)}
@@ -200,7 +200,7 @@ def run_dp_parallel_beta(args, H0, H1):
     with open(path_name + "params.json", "w") as json_file:
         json.dump(param_values, json_file, indent=4)
 
-    V_func, V_func_k_pol = approximate_dynamic_program(T, num_expectation_samples,ut
+    V_func, V_func_k_pol = approximate_dynamic_program(T, num_expectation_samples,ut,args
         
     )
     

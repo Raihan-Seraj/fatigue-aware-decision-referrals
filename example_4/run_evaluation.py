@@ -193,7 +193,7 @@ class Evaluations(object):
             #initial fatigue for adp
             F_adp = 0
 
-            F_adp_new=0
+            
 
             auto_cost_adp = 0
             human_cost_adp = 0
@@ -421,9 +421,7 @@ class Evaluations(object):
         #initial fatigue for adp
         F_adp = 0
 
-        #initial fatigue for the new model
-        F_adp_new=0
-
+     
         fatigue_evolution_kesav = []
         fatigue_evolution_adp = []
         
