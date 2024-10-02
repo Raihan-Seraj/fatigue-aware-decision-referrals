@@ -1,6 +1,14 @@
 import numpy as np 
 import tqdm 
 from scipy.stats import norm
+import scipy.special as sp
+import scipy.stats as stats
+import matplotlib.pyplot as plt
+import os 
+
+import matplotlib
+matplotlib.use('Agg')
+
 
 
 
@@ -82,6 +90,8 @@ class Utils(object):
         self.cfn = self.args.cfn
         self.cm = self.args.cm
         self.num_bins_fatigue = self.args.num_bins_fatigue  
+        self.cfr = np.log( ( (self.cfp-self.ctn)*self.prior[0])/ ((self.cfn-self.ctp)*self.prior[1])  )
+
 
         
 
@@ -168,9 +178,15 @@ class Utils(object):
     ## taking max at the denominator for stability 
     def tau(self,w_t, F_t):
 
-        tau = self.d_0 * (1 - (1-np.exp(-self.alpha*F_t)*(min(w_t/self.w_0,1))**self.beta)) / 2 + (
-            self.sigma_h**2 / max(self.d_0 * (1 - (1-np.exp(-self.alpha*F_t)*(min(w_t/self.w_0,1))**self.beta)),1e-20)
-        ) * np.log((self.cfp - self.ctn) * self.prior[0] / ((self.cfn - self.ctp) * self.prior[1]))
+        
+
+        d_0_w_f = self.d_0 * (1-(1-np.exp(-self.alpha * F_t))* (min(w_t/self.w_0,1))**self.beta)
+
+        # tau = self.d_0 * (1 - (1-np.exp(-self.alpha*F_t)*(min(w_t/self.w_0,1))**self.beta)) / 2 + (
+        #     self.sigma_h**2 / self.d_0 * (1 - (1-np.exp(-self.alpha*F_t)*(min(w_t/self.w_0,1))**self.beta))
+        # ) * np.log((self.cfp - self.ctn) * self.prior[0] / ((self.cfn - self.ctp) * self.prior[1]))
+
+        tau = d_0_w_f/2 + (self.sigma_h**2/d_0_w_f)*self.cfr
 
         return tau
 
@@ -195,9 +211,11 @@ class Utils(object):
 
         tau_wf = self.tau(w_t, F_t)
 
+        d_0_w_f = self.d_0 * (1-(1-np.exp(-self.alpha * F_t))* (min(w_t/self.w_0,1))**self.beta)
+
         # computing true positive probability of the human
         P_h_tp = 1 - norm.cdf(
-            (tau_wf - self.d_0 * (1 - (1-np.exp(-self.alpha*F_t)*(min(w_t/self.w_0,1))**self.beta))) / self.sigma_h,
+            (tau_wf - d_0_w_f) / self.sigma_h,
             loc=0,
             scale=1,
         )
@@ -294,8 +312,10 @@ class Utils(object):
 
         # computing true positive probability of the human
 
+        d_0_w_f = self.d_0 * (1-(1-np.exp(-self.alpha * F_t))* (min(w_t/self.w_0,1))**self.beta)
+
         P_h_tp = 1 - norm.cdf(
-            (tau_wf - self.d_0 * (1 - (1-np.exp(-self.alpha*F_t)*(min(w_t/self.w_0,1))**self.beta))) / self.sigma_h,
+            (tau_wf - d_0_w_f)/ self.sigma_h,
             loc=0,
             scale=1,
         )
@@ -462,3 +482,98 @@ class Utils(object):
 
 
 
+
+    def plot_threshold(self):
+
+        task_loads = [i for i in range(self.num_tasks_per_batch+1)]
+        all_thresholds = []
+        all_x_axis=[]
+
+        F_states = np.round(np.linspace(0, 1, self.args.num_bins_fatigue + 1), 2)
+        
+        #F_states = [0, 0.2, 0.4, 0.6,1]
+
+        for F_t in F_states:
+
+            for w_t in task_loads:
+
+                threshold = self.tau(F_t,w_t)
+
+                x_vals = 'F_t: '+str(F_t)+', w_t: '+str(w_t)
+
+                all_x_axis.append(x_vals)
+                all_thresholds.append(threshold)
+        
+        
+        plt.scatter(all_x_axis, all_thresholds, color='red')
+        
+        save_path = self.args.results_path +'num_tasks '+str(self.args.num_tasks_per_batch)+'/Threshold_Plots/'
+
+        if not os.path.exists(save_path):
+
+            try:
+                os.makedirs(save_path,exist_ok=True)
+            except FileExistsError:
+                pass
+
+        plt.savefig(save_path+'threshold_plot_alpha_'+str(self.alpha)+'_beta_'+str(self.beta)+'_mu_'+str(self.mu)+'_lambda_'+str(self.lamda)+'.pdf')
+
+       
+        plt.clf()
+
+        plt.close()
+        return
+
+
+
+
+
+    def qfunc(self,x):
+        return 0.5 * sp.erfc(x / np.sqrt(2))
+    
+    def qfuncinv(self, y):
+        return np.sqrt(2) * stats.norm.ppf(1 - y)
+
+
+    def roc_plot(self):
+
+        false_positive_probs = np.arange(0,1+0.01, 0.01)
+
+        y_grid = np.arange(-100,100+0.05, 0.05)
+
+        wgrid = [i for i in range(self.num_tasks_per_batch+1)]
+
+        Ptps_automation = [self.qfunc(self.qfuncinv(i)-self.d_0/self.sigma_a) for i in false_positive_probs]
+
+        plt.plot(false_positive_probs, Ptps_automation,color='red',label='ROC-Automation',linewidth=3)
+
+        ## plotting the roc curve for the human 
+
+        F_states = np.round(np.linspace(0, 1, self.num_bins_fatigue + 1), 2)
+
+        for F_t in F_states:
+
+            for w_t in range(self.num_tasks_per_batch+1):
+
+                d_0_wf= self.d_0 * (1 - (1-np.exp(-self.alpha*F_t)*(min(w_t/self.w_0,1))**self.beta))
+
+                P_tps_human  = [self.qfunc(self.qfuncinv(i)- d_0_wf/self.sigma_h) for i in false_positive_probs]
+                plt.plot(false_positive_probs, P_tps_human,color='blue', linestyle='--')
+
+        
+        save_path = self.args.results_path +'num_tasks '+str(self.args.num_tasks_per_batch)+'/ROC_Plots/'
+
+        if not os.path.exists(save_path):
+
+            try:
+                os.makedirs(save_path,exist_ok=True)
+            except FileExistsError:
+                pass
+
+        plt.savefig(save_path+'roc_plot_alpha_'+str(self.alpha)+'_beta_'+str(self.beta)+'_mu_'+str(self.mu)+'_lambda_'+str(self.lamda)+'.pdf')
+
+        plt.clf()
+        plt.close()
+
+        return
+    

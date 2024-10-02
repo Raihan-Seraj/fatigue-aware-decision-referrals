@@ -137,6 +137,10 @@ def run_dp_parallel_beta(args, H0, H1):
 
     
     ut = Utils(args, H0, H1)
+    ut.roc_plot()
+    ut.plot_threshold()
+    
+    
 
     if args.use_wandb:
         run_info = wandb.init(project="Example 2",name="beta "+str(beta)+' alpha '+str(alpha)+' mu '+str(mu)+' lambda '+str(lamda),settings=wandb.Settings(start_method="fork"), mode=args.wandb_sync)
