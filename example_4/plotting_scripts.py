@@ -137,20 +137,20 @@ def create_performance_table(alphas, betas, gammas,num_tasks_per_batch, result_p
 				
 
 				new_row  = pd.DataFrame([[str(alpha), str(beta), str(gamma), 
-								str(expected_total_human_cost_adp)+'$\pm$'+str(std_total_human_cost_adp),
-								str(expected_total_human_cost_k)+'$\pm$'+str(std_total_human_cost_k),
-								str(expected_human_cost_per_wl_adp)+'$\pm$'+str(std_human_cost_per_wl_adp),
-								str(expected_human_cost_per_wl_k)+'$\pm$'+str(std_human_cost_per_wl_k),
-								str(expected_total_automation_cost_adp)+'$\pm$'+str(std_total_automation_cost_adp),
-								str(expected_total_automation_cost_k)+'$\pm$'+str(std_total_automation_cost_k),
-								str(expected_automation_cost_per_wl_adp)+'$\pm$'+str(std_automation_cost_per_wl_adp),
-								str(expected_automation_cost_per_wl_k)+'$\pm$'+str(std_automation_cost_per_wl_k),
-								str(expected_total_deferred_cost_adp)+'$\pm$'+str(std_total_deferred_cost_adp),
-								str(expected_total_deferred_cost_k)+'$\pm$'+str(std_total_deferred_cost_k),
-								str(expected_total_cost_adp)+'$\pm$'+str(std_total_cost_adp),
-								str(expected_total_cost_k)+'$\pm$'+str(std_total_cost_k),
-								str(expected_taskload_human_adp)+'$\pm$'+str(std_taskload_human_adp),
-								str(expected_taskload_human_k)+'$\pm$'+str(std_taskload_human_k)]],columns=final_data.columns)
+								str(expected_total_human_cost_adp)+'$pm$'+str(std_total_human_cost_adp),
+								str(expected_total_human_cost_k)+'$pm$'+str(std_total_human_cost_k),
+								str(expected_human_cost_per_wl_adp)+'$pm$'+str(std_human_cost_per_wl_adp),
+								str(expected_human_cost_per_wl_k)+'$pm$'+str(std_human_cost_per_wl_k),
+								str(expected_total_automation_cost_adp)+'$pm$'+str(std_total_automation_cost_adp),
+								str(expected_total_automation_cost_k)+'$pm$'+str(std_total_automation_cost_k),
+								str(expected_automation_cost_per_wl_adp)+'$pm$'+str(std_automation_cost_per_wl_adp),
+								str(expected_automation_cost_per_wl_k)+'$pm$'+str(std_automation_cost_per_wl_k),
+								str(expected_total_deferred_cost_adp)+'$pm$'+str(std_total_deferred_cost_adp),
+								str(expected_total_deferred_cost_k)+'$pm$'+str(std_total_deferred_cost_k),
+								str(expected_total_cost_adp)+'$pm$'+str(std_total_cost_adp),
+								str(expected_total_cost_k)+'$pm$'+str(std_total_cost_k),
+								str(expected_taskload_human_adp)+'$pm$'+str(std_taskload_human_adp),
+								str(expected_taskload_human_k)+'$pm$'+str(std_taskload_human_k)]],columns=final_data.columns)
 				
 				
 				final_data = pd.concat([final_data,new_row],ignore_index=True)
@@ -200,11 +200,11 @@ if __name__=='__main__':
 	result_path = 'results/'
 	num_tasks_per_batch=20
 	
-	alphas=[0.05, 0.01, 0.03]
+	alphas=[1.0]
 
-	betas = [0.5, 1.0]
+	betas = [0.1]
 
-	gammas = [0.05, 0.08, 0.02, 0.09, 0.3]
+	gammas = [0.001]
 
 	
 

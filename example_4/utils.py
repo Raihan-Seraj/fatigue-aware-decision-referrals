@@ -1,6 +1,10 @@
 import numpy as np 
 import tqdm 
 from scipy.stats import norm
+import scipy.special as sp
+import scipy.stats as stats
+import matplotlib.pyplot as plt
+import os
 
 
 
@@ -81,7 +85,10 @@ class Utils(object):
         self.cfp = self.args.cfp 
         self.cfn = self.args.cfn
         self.cm = self.args.cm
-        self.num_bins_fatigue = self.args.num_bins_fatigue  
+        self.num_bins_fatigue = self.args.num_bins_fatigue
+        
+
+        self.cfr = np.log( ( (self.cfp-self.ctn)*self.prior[0])/ ((self.cfn-self.ctp)*self.prior[1])  )
 
         
 
@@ -103,7 +110,7 @@ class Utils(object):
 
         # F_next = R_t + (1 - R_t) * (1 - np.exp(-self.lamda * w_t))
 
-        F_next = F_t + self.gamma * w_t**2
+        F_next = min(F_t + self.gamma * w_t**2,1)
 
         return F_next
 
@@ -170,10 +177,14 @@ class Utils(object):
     ## taking max at the denominator for stability 
     def tau(self,w_t, F_t):
 
-        tau = self.d_0 * (1 - (1-np.exp(-self.alpha*F_t)*(min(w_t/self.w_0,1))**self.beta)) / 2 + (
-            self.sigma_h**2 / max(self.d_0 * (1 - (1-np.exp(-self.alpha*F_t)*(min(w_t/self.w_0,1))**self.beta)),1e-20)
-        ) * np.log((self.cfp - self.ctn) * self.prior[0] / ((self.cfn - self.ctp) * self.prior[1]))
+        d_0_w_f = self.d_0/(1+self.alpha * F_t**2 + self.beta * np.exp(min(w_t/self.w_0,1)))
 
+        
+        #deno = self.alpha * F_t**2 + self.beta * np.exp(min(w_t/self.w_0,1))
+        tau = d_0_w_f/2 + (self.sigma_h**2/d_0_w_f)*self.cfr
+        #print("the value of tau is ", tau)
+        #print("The denominator is ", deno, 'The value of w_t is ',w_t, 'The value of F_t is', F_t)
+         
         return tau
 
 
@@ -198,8 +209,12 @@ class Utils(object):
         tau_wf = self.tau(w_t, F_t)
 
         # computing true positive probability of the human
+
+        d_0_w_f = self.d_0/(1+self.alpha * F_t**2 + self.beta * np.exp(min(w_t/self.w_0,1)))
+
+        # computing true positive probability of the human
         P_h_tp = 1 - norm.cdf(
-            (tau_wf - self.d_0 * (1 - (1-np.exp(-self.alpha*F_t)*(min(w_t/self.w_0,1))**self.beta))) / self.sigma_h,
+            (tau_wf - d_0_w_f) / self.sigma_h,
             loc=0,
             scale=1,
         )
@@ -296,12 +311,14 @@ class Utils(object):
 
         # computing true positive probability of the human
 
+        d_0_w_f = self.d_0/(1+self.alpha * F_t**2 + self.beta * np.exp(min(w_t/self.w_0,1)))
+
+        # computing true positive probability of the human
         P_h_tp = 1 - norm.cdf(
-            (tau_wf - self.d_0 * (1 - (1-np.exp(-self.alpha*F_t)*(min(w_t/self.w_0,1))**self.beta))) / self.sigma_h,
+            (tau_wf - d_0_w_f) / self.sigma_h,
             loc=0,
             scale=1,
         )
-
         # computing false positive probability of the human
 
         P_h_fp = 1 - norm.cdf((tau_wf) / self.sigma_h, loc=0, scale=1)
@@ -429,7 +446,7 @@ class Utils(object):
     '''
     def discretize_fatigue_state(self,F):
 
-        bins = np.linspace(0, self.args.Fmax, self.num_bins_fatigue + 1)
+        bins = np.linspace(0, 1, self.num_bins_fatigue + 1)
 
         discretized_data = np.digitize(F, bins)
 
@@ -461,6 +478,184 @@ class Utils(object):
         final_human_indices = all_human_indices[max_idx]
 
         return w_t_star, final_human_indices
+
+
+
+
+    def qfunc(self,x):
+        return 0.5 * sp.erfc(x / np.sqrt(2))
+    
+    def qfuncinv(self, y):
+        return np.sqrt(2) * stats.norm.ppf(1 - y)
+
+
+    def roc_plot(self):
+
+        false_positive_probs = np.arange(0,1+0.01, 0.01)
+
+        y_grid = np.arange(-100,100+0.05, 0.05)
+
+        wgrid = [i for i in range(self.num_tasks_per_batch+1)]
+
+        Ptps_automation = [self.qfunc(self.qfuncinv(i)-self.d_0/self.sigma_a) for i in false_positive_probs]
+
+        plt.plot(false_positive_probs, Ptps_automation,color='red',label='ROC-Automation',linewidth=3)
+
+        ## plotting the roc curve for the human 
+
+        F_states = np.round(np.linspace(0, 1, self.num_bins_fatigue + 1), 2)
+
+        for F_t in F_states:
+
+            for w_t in range(self.num_tasks_per_batch+1):
+
+                d_0_w_f = self.d_0/(1+self.alpha * F_t**2 + self.beta * np.exp(min(w_t/self.w_0,1)))
+
+                P_tps_human  = [self.qfunc(self.qfuncinv(i)- d_0_w_f/self.sigma_h) for i in false_positive_probs]
+                plt.plot(false_positive_probs, P_tps_human,color='blue', linestyle='--')
+
+        save_path = self.args.results_path +'num_tasks '+str(self.args.num_tasks_per_batch)+'/ROC_Plots/'
+
+        if not os.path.exists(save_path):
+
+            try:
+                os.makedirs(save_path,exist_ok=True)
+            except FileExistsError:
+                pass
+
+        plt.savefig(save_path+'roc_plot_alpha_'+str(self.alpha)+'_beta_'+str(self.beta)+'_gamma_'+str(self.gamma)+'.pdf')
+
+        plt.clf()
+        plt.close()
+
+        return
+
+      
+
+
+    
+
+    def plot_threshold(self):
+
+        task_loads = [i for i in range(self.num_tasks_per_batch+1)]
+        all_thresholds = []
+        all_x_axis=[]
+
+        F_states = np.round(np.linspace(0, 1, self.args.num_bins_fatigue + 1), 2)
+        
+        
+
+        for F_t in F_states:
+
+            for w_t in task_loads:
+
+                threshold = self.tau(w_t,F_t)
+
+                x_vals = 'F_t: '+str(F_t)+', w_t: '+str(w_t)
+
+                all_x_axis.append(x_vals)
+                all_thresholds.append(threshold)
+        
+        
+        plt.figure(figsize=(50, 12))
+        plt.scatter(all_x_axis, all_thresholds, color='red')
+
+        save_path = self.args.results_path +'num_tasks '+str(self.args.num_tasks_per_batch)+'/Threshold_Plots/'
+
+        if not os.path.exists(save_path):
+
+            try:
+                os.makedirs(save_path,exist_ok=True)
+            except FileExistsError:
+                pass
+
+        plt.savefig(save_path+'threshold_plot_alpha_'+str(self.alpha)+'_beta_'+str(self.beta)+'_gamma_'+str(self.gamma)+'.pdf')
+
+       
+        plt.clf()
+
+        plt.close()
+        return
+    
+
+    def find_cdf_pdf(self, rho_grid):
+
+        fs = np.zeros(len(rho_grid))
+
+        Fs = np.zeros(len(rho_grid))
+
+        for i in range(len(rho_grid)):
+
+            rho = rho_grid[i]
+
+            y_rho = self.d_0/2+ ((self.sigma_a**2)/self.d0)*np.log(rho*(1-self.prior[1])/((1-rho)*self.prior[1]))
+
+            f_y_rho = self.prior[1]*norm.pdf(y_rho,self.d_0,self.sigma_a) + (1-self.prior[1])*norm.pdf(y_rho,0,self.sigma_a)
+
+            fs[i] = ((self.sigma_a^2)/self.d0)*f_y_rho/(rho*(1-rho))
+
+            F_y_rho = self.prior[1]*norm.cdf(y_rho,self.d_0,self.sigma_a) + (1-self.prior[1])*norm.cdf(y_rho,0,self.sigma_a)
+            Fs[i] = F_y_rho
+        
+        pmf_rho_1 = fs/sum(fs)
+
+        cdf_rho_1 = Fs
+
+        return pmf_rho_1, cdf_rho_1
+
+    def find_confusion_region(self):
+
+        taskloads = [i for i in range(self.num_tasks_per_batch+1)]
+        
+        # the value of all possible thresholds
+        rho_grid = np.arange(0.001,1+0.005, 0.005)
+
+        
+        # here rho_th is the threshold value normally this is 0.5 if cfn=cfp=1, and ctp=ctn=0
+        rho_th = (self.ctn-self.cfp)/(self.ctn-self.cfp+self.ctp-self.cfn)
+
+        # among the grid find the particular grid that closely matches with rho_th
+        idx  =  np.argmin(abs(rho_grid-rho_th))
+
+        cfr = (self.cfp-self.ctn)*(1-self.prior[1])/(self.prior[1]*(self.cfn-self.ctp))
+
+        C1_rho = np.zeros(len(rho_grid))
+        C1_rho[0:idx] = self.cfn*rho_grid[0:idx] + self.ctn*(1-rho_grid[0:idx])
+        
+        cdf_rho_1, pmf_rho_1 = self.find_cdf_pdf(rho_grid)
+
+        cost_lefts = np.zeros(len(rho_grid)-1)
+        min_ind_left = np.zeros(len(rho_grid)-1)
+
+        for left in range(len(rho_grid)-1):
+
+            cost_rights = np.zeros(len(rho_grid)-left)
+
+            rho_left = rho_grid[left]
+
+            for right in range(left+1,len(rho_grid)):
+
+                rho_right = rho_grid[right]
+
+                rhos = rho_grid[left+1:right]
+
+                w_t = cdf_rho_1[right]-cdf_rho_1[left]
+
+                d_0_w_f = self.d_0 * (max(1-self.alpha*np.sqrt(F_t) - self.beta * min(w_t/self.w_0,1),0))
+        
+        
+        C1left = self.cfn*rho_grid[1:idx] + self.ctn*(1-rho_grid[1:idx])
+        
+        C1right = self.cfp*(1-rho_grid[idx+1:]) + self.ctp*rho_grid[idx+1:]
+
+
+        rho_th_left = 0
+        rho_th_right = 1
+
+        yth = -100 * np.ones(1,len(taskloads))
+        pass
+        
+
 
 
 

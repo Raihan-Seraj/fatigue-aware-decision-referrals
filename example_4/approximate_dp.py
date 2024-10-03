@@ -29,7 +29,7 @@ def approximate_dynamic_program(T, num_expectation_samples,ut, args):
     
 
     # number of possible fatigue states
-    F_states = np.round(np.linspace(0, args.Fmax, ut.num_bins_fatigue + 1), 2)
+    F_states = np.round(np.linspace(0, 1, ut.num_bins_fatigue + 1), 2)
 
     # initializing the value of V_bar
     V_bar = {t: np.zeros((ut.num_bins_fatigue + 1)) for t in range(T + 2)}
@@ -56,7 +56,7 @@ def approximate_dynamic_program(T, num_expectation_samples,ut, args):
                 for w_t in range(ut.num_tasks_per_batch + 1):
 
                     ## computing the expectation
-
+                    
                     F_next = ut.get_fatigue(F_t, w_t)
 
                     F_next_idx = ut.discretize_fatigue_state(F_next)
@@ -132,14 +132,19 @@ def run_dp_parallel_beta(args, H0, H1):
     cm = args.cm
     num_bins_fatigue=args.num_bins_fatigue
     num_expectation_samples = args.num_expectation_samples
-    Fmax = args.Fmax
     T = args.horizon
 
     
     ut = Utils(args, H0, H1)
 
+    ut.roc_plot()
+    ut.plot_threshold()
+    
+    
+
+
     if args.use_wandb:
-        run_info = wandb.init(project="Example 2",name="beta "+str(beta)+' alpha '+str(alpha)+' gamma '+str(gamma),settings=wandb.Settings(start_method="fork"), mode=args.wandb_sync)
+        run_info = wandb.init(project="Example 4",name="beta "+str(beta)+' alpha '+str(alpha)+' gamma '+str(gamma),settings=wandb.Settings(start_method="fork"), mode=args.wandb_sync)
     
 
     param_values = {
@@ -181,7 +186,7 @@ def run_dp_parallel_beta(args, H0, H1):
 
         "num_expectation_samples": num_expectation_samples,  
 
-        "Fmax": Fmax
+        
 
     }
 
@@ -240,15 +245,15 @@ def main():
     
     parser = argparse.ArgumentParser(description="Approximate Dynamic Program parameters.")
 
-    parser.add_argument('--beta', type=float, default= 0.5, help='Exponent that influcences the extent to which workload affects the observation channel')
-    parser.add_argument('--alpha',type=float, default=0.05, help='Exponent that influences the extent to which fatigue affects the observation channel' )
-    parser.add_argument('--gamma',type=float, default=0.05, help='The growth rate of unrecoverable fatigue')
+    parser.add_argument('--beta', type=float, default= 2*0.3/np.exp(1), help='Exponent that influcences the extent to which workload affects the observation channel')
+    parser.add_argument('--alpha',type=float, default=0.3, help='Exponent that influences the extent to which fatigue affects the observation channel' )
+    parser.add_argument('--gamma',type=float, default=0.0025, help='The growth rate of unrecoverable fatigue')
     parser.add_argument('--num_expectation_samples', type=int, default=10, help='Number of expectation samples to take for the approximate Dynamic Program.')
     parser.add_argument('--horizon', type=int, default=20, help='The length of the horizon.')
-    parser.add_argument('--d_0',type=float, default= 3, help='The value of d0 in the experiment.')
+    parser.add_argument('--d_0',type=float, default= 5, help='The value of d0 in the experiment.')
     parser.add_argument('--prior',default=[0.8,0.2], help='A list containing the prior of [H0, H1].' )
     parser.add_argument('--num_tasks_per_batch', type=int, default=20, help='The total number of tasks in a batch.')
-    parser.add_argument('--sigma_a',type=float, default=1.5, help='Automation observation channel variance.')
+    parser.add_argument('--sigma_a',type=float, default=2.5, help='Automation observation channel variance.')
     parser.add_argument('--sigma_h', type=float, default=1.0, help='Human observation channel variance.')
     parser.add_argument('--w_0', type=int, default=15, help='The workload threshold beyond which fatigue recovery does not occur')
     parser.add_argument('--num_bins_fatigue', type=int, default=10, help='The number of bins to be used to discretize fatigue')
@@ -267,7 +272,7 @@ def main():
 
     parser.add_argument('--run_eval_only', type=bool, default=False)
     parser.add_argument('--num_eval_runs', type=int, default=10, help="Number of independent runs for monte carlo performance evaluation")
-    parser.add_argument('--Fmax', type=int, default=100, help='Maximum value of Fatigue')
+    
 
     args = parser.parse_args()
 

@@ -497,7 +497,7 @@ class Utils(object):
 
             for w_t in task_loads:
 
-                threshold = self.tau(F_t,w_t)
+                threshold = self.tau(w_t,F_t)
 
                 x_vals = 'F_t: '+str(F_t)+', w_t: '+str(w_t)
 
