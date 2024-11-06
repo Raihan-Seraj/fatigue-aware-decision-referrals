@@ -4,6 +4,7 @@ from scipy.stats import norm
 import scipy.special as sp
 import scipy.stats as stats
 import matplotlib.pyplot as plt
+from envs.fatigue_model_1 import FatigueMDP
 import os 
 
 import matplotlib
@@ -92,9 +93,19 @@ class Utils(object):
         self.num_bins_fatigue = self.args.num_bins_fatigue 
         self.fatigue_model = self.args.fatigue_model 
         self.cfr = np.log( ( (self.cfp-self.ctn)*self.prior[0])/ ((self.cfn-self.ctp)*self.prior[1])  )
+        self.env = FatigueMDP()
 
+    
 
-        
+    def discretize_taskload(self,w_t):
+
+        bins = np.linspace(0, self.num_tasks_per_batch, self.env.num_actions)
+
+        discretized_data = np.digitize(w_t, bins)
+
+        # subtracting 1 since python is zero indexed
+        return discretized_data - 1
+
 
 
     
@@ -177,14 +188,16 @@ class Utils(object):
 
     def Phfp(self, F_t, w_t):
 
-        res = 1 - np.exp(-1*(self.alpha * F_t + self.beta * w_t))
+        #res = 1 - np.exp(-1*(self.alpha * F_t + self.beta * w_t))
+
+        res = min(self.alpha * F_t+self.beta *w_t,1)
 
         return res
     
     def Phtp(self, F_t, w_t):
 
-        res_1 = 1 - np.exp(-1*(self.alpha * F_t + self.beta * w_t))
-
+        #res_1 = 1 - np.exp(-1*(self.alpha * F_t + self.beta * w_t))
+        res_1 = min(F_t+self.beta *w_t,1)
         res = res_1**self.gamma
         return res
 
