@@ -203,7 +203,7 @@ def plot_human_perf_vs_taskload(beta, result_path):
 
 def create_complete_performance_table():
 
-	result_path = 'results/'
+	result_path = 'res3/'
 	num_tasks_per_batch=20
 	
 	# beta = 0.5
@@ -214,11 +214,11 @@ def create_complete_performance_table():
 
 	# lamdas = [0.1,0.03,0.07, 0.007]
 
-	alphas = [0.8]
-	betas = [0.01]
-	gammas = [0.1]
-	mus = [0.05]
-	lamdas = [0.07]
+	alphas = [0.08]
+	betas = [0.005]
+	gammas = [0.4]
+	mus = [0.0]
+	lamdas = [0.05]
 	
 	
 	create_performance_table(alphas,betas,gammas, mus, lamdas, num_tasks_per_batch, result_path)

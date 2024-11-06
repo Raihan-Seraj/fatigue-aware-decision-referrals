@@ -431,26 +431,32 @@ class Evaluations(object):
             pickle.dump(all_taskload_adp,file4)
 
         
-        mean_fatigue_k = np.mean(all_fatigue_kesav,axis=0)
-        std_fatigue_k = np.std(all_fatigue_kesav,axis=0)
+        median_fatigue_k = np.median(all_fatigue_kesav,axis=0)
+        std_fatigue_k_lower = np.percentile(all_fatigue_kesav,25,axis=0)
+        std_fatigue_k_higher = np.percentile(all_fatigue_kesav,75,axis=0)
 
 
-        mean_fatigue_adp = np.mean(all_fatigue_adp,axis=0)
-        std_fatigue_adp = np.std(all_fatigue_adp,axis=0)
+        median_fatigue_adp = np.median(all_fatigue_adp,axis=0)
+        std_fatigue_adp_lower = np.percentile(all_fatigue_adp,25,axis=0)
+        std_fatigue_adp_higher = np.percentile(all_fatigue_adp,75,axis=0)
 
 
-        mean_taskload_k = np.mean(all_taskload_kesav,axis=0)
-        std_taskload_k = np.std(all_taskload_kesav,axis=0)
+        median_taskload_k = np.median(all_taskload_kesav,axis=0)
+        std_taskload_k_lower = np.percentile(all_taskload_kesav,25,axis=0)
+        std_taskload_k_higher = np.percentile(all_taskload_kesav,75,axis=0)
 
-        mean_taskload_adp = np.mean(all_taskload_adp,axis=0)
-        std_taskload_adp = np.std(all_taskload_adp,axis=0)
+        
+
+        median_taskload_adp = np.median(all_taskload_adp,axis=0)
+        std_taskload_adp_lower = np.percentile(all_taskload_adp,25,axis=0)
+        std_taskload_adp_higher = np.percentile(all_taskload_adp,75,axis=0)
 
 
-        plt.step(np.arange(1,self.args.horizon+1,1),mean_fatigue_k,color='black',where='post',label='K-Algorithm')
-        plt.fill_between(np.arange(1,self.args.horizon+1,1), mean_fatigue_k-std_fatigue_k, mean_fatigue_k+std_fatigue_k,step='post', alpha=0.2, color='black')
+        plt.step(np.arange(1,self.args.horizon+1,1),median_fatigue_k,color='black',where='post',label='K-Algorithm')
+        plt.fill_between(np.arange(1,self.args.horizon+1,1), std_fatigue_k_lower, std_fatigue_k_higher,step='post', alpha=0.2, color='black')
 
-        plt.step(np.arange(1,self.args.horizon+1,1),mean_fatigue_adp,color='orange',where='post',label='ADP')
-        plt.fill_between(np.arange(1,self.args.horizon+1,1), mean_fatigue_adp-std_fatigue_adp, mean_fatigue_adp+std_fatigue_adp,step='post', alpha=0.2, color='orange')
+        plt.step(np.arange(1,self.args.horizon+1,1),median_fatigue_adp,color='orange',where='post',label='ADP')
+        plt.fill_between(np.arange(1,self.args.horizon+1,1), std_fatigue_adp_lower, std_fatigue_adp_higher,step='post', alpha=0.2, color='orange')
 
         plt.grid(True)
         
@@ -464,11 +470,11 @@ class Evaluations(object):
         plt.close()
 
 
-        plt.step(np.arange(1,self.args.horizon+1,1),mean_taskload_k,color='black',where='post',label='K-Algorithm')
-        plt.fill_between(np.arange(1,self.args.horizon+1,1), mean_taskload_k-std_taskload_k, mean_taskload_k+std_taskload_k,step='post', alpha=0.2, color='black')
+        plt.step(np.arange(1,self.args.horizon+1,1),median_taskload_k,color='black',where='post',label='K-Algorithm')
+        plt.fill_between(np.arange(1,self.args.horizon+1,1), std_taskload_k_lower, std_taskload_k_higher,step='post', alpha=0.2, color='black')
 
-        plt.step(np.arange(1,self.args.horizon+1,1),mean_taskload_adp,color='orange',where='post',label='ADP')
-        plt.fill_between(np.arange(1,self.args.horizon+1,1), mean_taskload_adp-std_taskload_adp, mean_taskload_adp+std_taskload_adp,step='post', alpha=0.2, color='orange')
+        plt.step(np.arange(1,self.args.horizon+1,1),median_taskload_adp,color='orange',where='post',label='ADP')
+        plt.fill_between(np.arange(1,self.args.horizon+1,1), std_taskload_adp_lower, std_taskload_adp_higher,step='post', alpha=0.2, color='orange')
         
     
         plt.xlabel('Time')
