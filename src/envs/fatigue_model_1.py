@@ -1,5 +1,5 @@
 import numpy as np
-import copy
+
 
 
 
@@ -11,10 +11,10 @@ class FatigueMDP():
         self.num_fatigue_states = 4
         self.num_actions = 4
         self.start_state_probs = np.ones(self.num_fatigue_states)/(self.num_fatigue_states)
-        self.start_state = np.random.choice(len(self.start_state_probs),p=self.start_state_probs)
+        
 
 
-        self.current_state = copy.deepcopy(self.start_state)
+
 
         # self.action_transition_matrix = {0: np.array([[0.5, 0.3,0.1,0.1],
         #                                               [0.4, 0.3, 0.2, 0.1],
@@ -45,17 +45,12 @@ class FatigueMDP():
                             
                             }
 
-    def step(self, action):
+    def next_state(self, current_state, action):
 
-        next_state = np.random.choice(self.num_fatigue_states, p=self.P[action][self.current_state,:])
+        next_state = np.random.choice(self.num_fatigue_states, p=self.P[action][current_state,:])
 
         self.current_state = next_state
 
         return next_state
     
-    def reset(self):
-
-        self.current_state = self.start_state
-
-        return self.current_state
-
+    
