@@ -10,7 +10,7 @@ class FatigueMDP():
 
         self.num_fatigue_states = 4
         self.num_actions = 4
-        self.start_state_probs = np.ones(self.num_fatigue_states)/(self.num_fatigue_states)
+        self.start_state_probs = np.array([1,0,0,0])#np.ones(self.num_fatigue_states)/(self.num_fatigue_states)
         
 
 
