@@ -51,52 +51,50 @@ def approximate_dynamic_program(T, num_expectation_samples,ut):
                 for F_next_t in range(num_fatigue_states):
                 
                     min_cost = float('inf')
-                    batched_obs, batched_posterior_h0, batched_posterior_h1 = ut.get_auto_obs()
+                    _, batched_posterior_h0, batched_posterior_h1 = ut.get_auto_obs()
+                    
                     w_t_k, deferred_k = ut.compute_kesav_policy(F_t,batched_posterior_h0,batched_posterior_h1)
                     
                     w_t_k_discretized = ut.discretize_taskload(w_t_k)
 
-                    w_min = None
+                    all_costs_per_w = []
                     for w_t in range(ut.num_tasks_per_batch + 1):
 
                         ## computing the expectation
-
-                        w_t_discrete  = ut.discretize_taskload(w_t)
-
                         
-
-                        cstar, deferred_indices, _ = ut.compute_cstar(
+                        cstar, _, _ = ut.compute_cstar(
                             F_t,
-                            w_t_discrete,
+                            w_t,
                             batched_posterior_h0,
                             batched_posterior_h1,
                         )
 
-                        auto_cost, hum_cost, deff_cost = ut.per_step_cost(F_t, batched_posterior_h1,deferred_indices)
                         
-                        per_step_cost = auto_cost + hum_cost + deff_cost
-                        total_cost = per_step_cost + V_bar[t + 1][F_next_t]
+                        total_cost = cstar + V_bar[t + 1][F_next_t] 
 
-                        
+                        all_costs_per_w.append(total_cost)
 
-                        if total_cost < min_cost:
-                            
-                            min_cost = total_cost
-                            w_min = ut.discretize_taskload(w_t)
                     
-                    expectation_f+=env.P[w_min][F_t,F_next_t]*min_cost
+                    w_minimum_cost = np.argmin(all_costs_per_w)
+
+                    min_cost = min(all_costs_per_w)
+
+                    w_min_discretized = ut.discretize_taskload(w_minimum_cost)
+                    
+                    expectation_f+=env.P[w_min_discretized][F_t,F_next_t]*min_cost
           
                 V_t = expectation_f
 
-                auto_cost_k,human_cost_k,deferred_cost_k = ut.per_step_cost(F_t,batched_posterior_h1,deferred_k)
-
-                total_cost_k = auto_cost_k + human_cost_k + deferred_cost_k 
+                
+                cstar_k,_,_ = ut.compute_cstar(F_t, w_t_k, batched_posterior_h0,batched_posterior_h1)
+                
+                total_cost_k = cstar_k
                 
                 F_next_k = env.next_state(F_t,w_t_k_discretized)
 
                
                 
-                V_t_k = total_cost_k + V_bar_k[t+1][F_next_t] 
+                V_t_k = total_cost_k + V_bar_k[t+1][F_next_k] 
 
                 sum_y += V_t
                 sum_y_k+=V_t_k
@@ -121,39 +119,18 @@ Function that runs dynamic program for different values of beta
 '''
 def run_approximate_dynamic_program(args):
 
-    fatigue_model = args.fatigue_model
+    
     
     num_tasks_per_batch = args.num_tasks_per_batch
-    # params for the fatigue model 
-    if fatigue_model.lower()=='model_1':
-        mu = args.mu
-        lamda = args.lamda
-        w_0 = args.w_0
-    
-    else:
-        raise ValueError("Incorrect fatigue model")
-
-    # auto observation
-    sigma_a = args.sigma_a
-    d_0 = args.d_0
-    
-    prior = args.prior
-    
+   
 
     #error probability params for model_1
     alpha = args.alpha
     beta = args.beta
     gamma = args.gamma
 
-    # cost
-    ctp = args.ctp
-    ctn = args.ctn
-    cfp = args.cfp
-    cfn = args.cfn
-    cm = args.cm
-
     #ADP params
-    num_bins_fatigue=args.num_bins_fatigue
+
     num_expectation_samples = args.num_expectation_samples
     T = args.horizon
 
@@ -167,7 +144,7 @@ def run_approximate_dynamic_program(args):
     
     
 
-    path_name = args.results_path + 'num_tasks '+str(num_tasks_per_batch)+'/alpha '+str(alpha)+'/beta '+str(beta)+'/gamma '+str(gamma)+'/mu_'+str(mu)+'_lambda_'+str(lamda)+'/'
+    path_name = args.results_path + 'num_tasks '+str(num_tasks_per_batch)+'/alpha '+str(alpha)+'/beta '+str(beta)+'/gamma '+str(gamma)+'/'
 
     if not os.path.exists(path_name):
         try:
@@ -223,15 +200,12 @@ def main():
     parser.add_argument('--beta',type=float, default=0.005, help='The influence of taskload on false positive probability' )
     parser.add_argument('--gamma',type=float, default=0.1, help='The exponent of the true positive probability model' )
 
-    parser.add_argument('--mu', type=float, default=0.07,  help='Decay rate of fatigue.')
-    parser.add_argument('--lamda', type=float, default=0.05,  help='Growth rate of fatigue.')
     parser.add_argument('--num_expectation_samples', type=int, default=500, help='Number of expectation samples to take for the approximate Dynamic Program.')
     parser.add_argument('--horizon', type=int, default=10, help='The length of the horizon.')
     parser.add_argument('--d_0',type=float, default= 3, help='The value of d0 in the experiment.')
     parser.add_argument('--prior',default=[0.8,0.2], nargs=2, type=float, help='A list containing the prior of [H0, H1].' )
     parser.add_argument('--num_tasks_per_batch', type=int, default=20, help='The total number of tasks in a batch.')
     parser.add_argument('--sigma_a',type=float, default=2, help='Automation observation channel variance.')
-    parser.add_argument('--w_0', type=int, default=15, help='The workload threshold beyond which fatigue recovery does not occur')
     parser.add_argument('--num_bins_fatigue', type=int, default=10, help='The number of bins to be used to discretize fatigue')
 
     #hypothesis value 
