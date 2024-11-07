@@ -411,7 +411,7 @@ class Evaluations(object):
         
         
         
-        path_name = self.args.results_path + 'num_tasks '+str(self.args.num_tasks_per_batch)+'/alpha '+str(self.args.alpha)+'/beta '+str(self.args.beta)+'/gamma '+str(self.args.gamma)+'/mu_'+str(self.args.mu)+'_lambda_'+str(self.args.lamda)+'/plot_analysis/'
+        path_name = self.args.results_path + 'num_tasks '+str(self.args.num_tasks_per_batch)+'/alpha '+str(self.args.alpha)+'/beta '+str(self.args.beta)+'/gamma '+str(self.args.gamma)+'/plot_analysis/'
 
         if not os.path.exists(path_name):
             try:
