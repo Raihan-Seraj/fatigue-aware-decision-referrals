@@ -74,9 +74,7 @@ class Utils(object):
         self.args = args
 
         self.num_tasks_per_batch = self.args.num_tasks_per_batch
-        self.mu  = self.args.mu
-        self.lamda = self.args.lamda 
-        self.w_0 = self.args.w_0
+        
         self.sigma_a = self.args.sigma_a
         self.H0 = self.args.H0
         self.H1 = self.args.H1
