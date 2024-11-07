@@ -6,7 +6,7 @@ import json
 from utils import Utils 
 import matplotlib
 import pickle
-
+from envs.fatigue_model_1 import FatigueMDP
 matplotlib.use('Agg')
 
 
@@ -14,6 +14,7 @@ class Evaluations(object):
     def __init__(self,args):
 
         self.args = args
+        self.env = FatigueMDP()
 
         
 
@@ -92,8 +93,6 @@ class Evaluations(object):
 
         all_deferred_indices=[]
 
-        F_t_idx = ut.discretize_fatigue_state(F_t)
-
         all_cost = []
 
         f_t_evol = []
@@ -101,9 +100,11 @@ class Evaluations(object):
 
         for w_t in range(ut.num_tasks_per_batch+1):
 
-            F_tp1 = ut.get_fatigue(F_t, w_t)
+            w_t_discrete = ut.discretize_taskload(w_t)
+
+            F_tp1 = self.env.next_state(F_t,w_t_discrete)
             
-            F_tp1_idx = ut.discretize_fatigue_state(F_tp1)
+            
 
             f_t_evol.append(F_tp1)
             
@@ -115,7 +116,7 @@ class Evaluations(object):
             )
             
             ## fixme
-            future_cost = V_bar[F_tp1_idx]
+            future_cost = V_bar[F_tp1]
 
             total_cost = cstar + future_cost
             
@@ -146,7 +147,7 @@ class Evaluations(object):
         
         
 
-        V_bar = np.load(self.args.results_path + 'num_tasks '+str(self.args.num_tasks_per_batch)+'/alpha '+str(self.args.alpha)+'/beta '+str(self.args.beta)+'/gamma '+str(self.args.gamma)+'/mu_'+str(self.args.mu)+'_lambda_'+str(self.args.lamda)+'/V_bar.npy')
+        V_bar = np.load(self.args.results_path + 'num_tasks '+str(self.args.num_tasks_per_batch)+'/alpha '+str(self.args.alpha)+'/beta '+str(self.args.beta)+'/gamma '+str(self.args.gamma)+'/V_bar.npy')
 
         num_runs = self.args.num_eval_runs
 
@@ -197,7 +198,7 @@ class Evaluations(object):
             for t in range(self.args.horizon):
 
 
-                batched_obs, batched_posterior_h0, batched_posterior_h1=mega_batch[t]
+                _, batched_posterior_h0, batched_posterior_h1=mega_batch[t]
 
                 wl_k, deferred_idx_k = self.compute_kesavs_algo(batched_posterior_h0, batched_posterior_h1, F_k, ut)
 
@@ -230,11 +231,12 @@ class Evaluations(object):
                 
 
                 #get the next fatigue state for kesav
-                F_k = ut.get_fatigue(F_k, wl_k)
+                wl_k_discrete = ut.discretize_taskload(wl_k)
+                F_k = self.env.next_state(F_k, wl_k_discrete)
 
                 #get the next fatigue state for adp
-
-                F_adp = ut.get_fatigue(F_adp,wl_adp)
+                wl_adp_discrete = ut.discretize_taskload(wl_adp)
+                F_adp = self.env.next_state(F_adp,wl_adp_discrete)
 
                 
 
@@ -261,7 +263,7 @@ class Evaluations(object):
 
              
 
-        path1 = self.args.results_path + 'num_tasks '+str(self.args.num_tasks_per_batch)+'/alpha '+str(self.args.alpha)+'/beta '+str(self.args.beta)+'/gamma '+str(self.args.gamma)+'/mu_'+str(self.args.mu)+'_lambda_'+str(self.args.lamda)+'/plot_analysis/cost_comparison/'
+        path1 = self.args.results_path + 'num_tasks '+str(self.args.num_tasks_per_batch)+'/alpha '+str(self.args.alpha)+'/beta '+str(self.args.beta)+'/gamma '+str(self.args.gamma)+'/plot_analysis/cost_comparison/'
         if not os.path.exists(path1):
             try:
                 os.makedirs(path1,exist_ok=True)
@@ -334,7 +336,7 @@ class Evaluations(object):
         ut = Utils(self.args)
 
        
-        V_bar = np.load(self.args.results_path + 'num_tasks '+str(self.args.num_tasks_per_batch)+'/alpha '+str(self.args.alpha)+'/beta '+str(self.args.beta)+'/gamma '+str(self.args.gamma)+'/mu_'+str(self.args.mu)+'_lambda_'+str(self.args.lamda)+'/V_bar.npy')
+        V_bar = np.load(self.args.results_path + 'num_tasks '+str(self.args.num_tasks_per_batch)+'/alpha '+str(self.args.alpha)+'/beta '+str(self.args.beta)+'/gamma '+str(self.args.gamma)+'/V_bar.npy')
 
 
         ## initial fatigue is for kesav 0
@@ -370,11 +372,12 @@ class Evaluations(object):
 
 
             #get the next fatigue state for kesav
-            F_k = ut.get_fatigue(F_k, wl_k)
+            wl_k_discrete = ut.discretize_taskload(wl_k)
+            F_k =self.env.next_state(F_k, wl_k_discrete)
 
             #get the next fatigue state for adp
-
-            F_adp = ut.get_fatigue(F_adp,wl_adp)
+            wl_adp_discrete = ut.discretize_taskload(wl_adp)
+            F_adp = self.env.next_state(F_adp,wl_adp_discrete)
 
             
             taskload_evolution_adp.append(wl_adp)
