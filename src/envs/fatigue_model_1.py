@@ -26,30 +26,34 @@ class FatigueMDP():
         self.P = {0: np.array([[0.7,0.3,0,0],
                                 [0.5, 0.4, 0.1, 0],
                                 [0.3, 0.4, 0.3, 0],
-                                [0.6, 0.3, 0.1, 0]]),
+                                [0.3, 0.4, 0.2, 0.1]]),
                                 
                  1: np.array([[0.4, 0.5, 0.1, 0],
                                 [0.2, 0.4, 0.3, 0.1],
                                 [0.1, 0.2, 0.4, 0.3],
                                 [0,0.1,0.2,0.7]]),
                                 
-                 2: np.array([[0.2,0.3,0.4,0.1],
+                 2: np.array([[0.1,0.4,0.4,0.1],
                             [0.1,0.2,0.4,0.3],
                             [0,0.1,0.3,0.6],
                             [0,0,0.2,0.8]]),
                  
-                 3: np.array([[0.1, 0.2, 0.4, 0.3],
+                 3: np.array([[0.1, 0.1, 0.4, 0.4],
                             [0,0.1,0.3,0.6],
                             [0,0,0.2,0.8],
                             [0,0,0.1,0.9]])
                             
                             }
 
-    def next_state(self, current_state, action):
+    def next_state(self, current_state, taskload_discretized):
 
-        next_state = np.random.choice(self.num_fatigue_states, p=self.P[action][current_state,:])
+        # we need to discretize the taskload here 
+        
+        assert isinstance(taskload_discretized, np.int64), "Value is not an integer"
+        assert 0 <= taskload_discretized <= 3, "Accepted action cannot be outside of [0,3]"
+    
 
-        self.current_state = next_state
+        next_state = np.random.choice(self.num_fatigue_states, p=self.P[taskload_discretized][current_state,:])
 
         return next_state
     

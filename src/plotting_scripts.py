@@ -210,8 +210,8 @@ def create_complete_performance_table():
 
 	# lamdas = [0.1,0.03,0.07, 0.007]
 
-	alphas = [0.3]
-	betas = [0.005]
+	alphas = [0.1]
+	betas = [0.1]
 	gammas = [0.1]
 
 	

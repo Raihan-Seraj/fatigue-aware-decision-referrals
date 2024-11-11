@@ -7,6 +7,7 @@ import json
 import os
 import pickle
 import argparse
+import contextlib
 
 
 
@@ -147,10 +148,8 @@ def run_approximate_dynamic_program(args):
     path_name = args.results_path + 'num_tasks '+str(num_tasks_per_batch)+'/alpha '+str(alpha)+'/beta '+str(beta)+'/gamma '+str(gamma)+'/'
 
     if not os.path.exists(path_name):
-        try:
+        with contextlib.suppress(FileExistsError):
             os.makedirs(path_name, exist_ok=True)
-        except FileExistsError:
-            pass
 
 
     args_dict = vars(args)
@@ -196,12 +195,12 @@ def main():
     
     parser = argparse.ArgumentParser(description="Approximate Dynamic Program parameters.")
 
-    parser.add_argument('--alpha', type=float, default= 0.3, help='The influence of fatigue on false positive probability')
-    parser.add_argument('--beta',type=float, default=0.005, help='The influence of taskload on false positive probability' )
+    parser.add_argument('--alpha', type=float, default= 0.1, help='The influence of fatigue on false positive probability')
+    parser.add_argument('--beta',type=float, default=0.1, help='The influence of taskload on false positive probability' )
     parser.add_argument('--gamma',type=float, default=0.1, help='The exponent of the true positive probability model' )
 
     parser.add_argument('--num_expectation_samples', type=int, default=500, help='Number of expectation samples to take for the approximate Dynamic Program.')
-    parser.add_argument('--horizon', type=int, default=10, help='The length of the horizon.')
+    parser.add_argument('--horizon', type=int, default=20, help='The length of the horizon.')
     parser.add_argument('--d_0',type=float, default= 3, help='The value of d0 in the experiment.')
     parser.add_argument('--prior',default=[0.8,0.2], nargs=2, type=float, help='A list containing the prior of [H0, H1].' )
     parser.add_argument('--num_tasks_per_batch', type=int, default=20, help='The total number of tasks in a batch.')

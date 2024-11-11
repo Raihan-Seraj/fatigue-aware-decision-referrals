@@ -1,12 +1,8 @@
 import numpy as np 
-import tqdm 
 from scipy.stats import norm
 import scipy.special as sp
 import scipy.stats as stats
-import matplotlib.pyplot as plt
 from envs.fatigue_model_1 import FatigueMDP
-import os 
-
 import matplotlib
 matplotlib.use('Agg')
 
@@ -27,44 +23,7 @@ matplotlib.use('Agg')
 
 class Utils(object):
     '''
-    The class is initialized with the following arguments
-    
-    Args:
-        num_tasks_per_batch: An integer denoting the total number of tasks in a given batch.
-
-        mu: The fatigue recovery rate --> input type float 
-
-        lamda: The fatigue growth rate --> input type float
-
-        w_0: The level of fatigue beyond which fatigue recovery does not occur --> input type integer
-
-        sigma_a: The observation variance of the gaussian distribution for the automation --> input any positive real
-
-        H0: The value of the null hypothesis --> input type integer
-
-        H1: The value of the alternate hypothesis --> input type integer  
-
-        prior: The prior distribution of H0 and H1 --> input type in the form [P(H0), P(H1)] where P(H0) and P(H1) denotes the probability of H0 and H1 respectively
-
-        d_0: The scaling term for the mean of the gaussian distribution for the observation of the human.
-
-        beta: The extent of the influence of fatigue and taskload on the observation --> input type value between 0 and 1 inclusive.
-
-        sigma_h: The observation variane of the gaussian distribution of the human --> input type: any positive real value
-
-        ctp: True positive costs --> input type any positive real value
-
-        ctn: True negative costs --> input type any positive real value
-
-        cfp: False positive cost ---> input type any positive real value
-        
-        cfn: False negative costs --> input type any postive real value
-
-        num_bins_fatigue: The number of bins used to discretize the fatigue state --> input type int 
-
-        
-
-
+    The class is initialized with the argparse 
     
     '''
 
@@ -72,12 +31,10 @@ class Utils(object):
     def __init__(self, args):
 
         self.args = args
-
         self.num_tasks_per_batch = self.args.num_tasks_per_batch
-        
         self.sigma_a = self.args.sigma_a
         self.H0 = self.args.H0
-        self.H1 = self.args.H1
+        self.H1 = self.args.H1    
         self.prior = self.args.prior 
         self.d_0 = self.args.d_0
         self.alpha = self.args.alpha
@@ -93,13 +50,13 @@ class Utils(object):
         self.cfr = np.log( ( (self.cfp-self.ctn)*self.prior[0])/ ((self.cfn-self.ctp)*self.prior[1])  )
         self.env = FatigueMDP()
 
-    
+        # number of bins to discretize the taskload 
+        self.num_bins = np.linspace(0, self.num_tasks_per_batch, self.env.num_actions)
 
+    
     def discretize_taskload(self,w_t):
 
-        bins = np.linspace(0, self.num_tasks_per_batch, self.env.num_actions)
-
-        discretized_data = np.digitize(w_t, bins)
+        discretized_data = np.digitize(w_t, self.num_bins)
 
         # subtracting 1 since python is zero indexed
         return discretized_data - 1
@@ -107,32 +64,6 @@ class Utils(object):
 
 
     
-    '''
-    Function that provides the next fatigue state given the current fatigue state and workload 
-
-    Args:
-        F_t: The current fatigue state in the range [0,1]
-        w_t: The taskload provided to the human 
-
-
-    '''
-
-    def get_fatigue(self,F_t, w_t):
-
-        if self.fatigue_model.lower()=='model_1':
-
-            R_t = F_t * np.exp(-self.mu * max((self.w_0 - w_t), 0))
-
-            F_next = R_t + (1 - R_t) * (1 - np.exp(-self.lamda * w_t))
-        
-        elif self.fatigue_model.lower()=='model_2':
-            pass
-        
-        else:
-            raise ValueError("Invalid fatigue model")
-
-        return F_next
-
 
 
     #####################################################################################################################
@@ -186,16 +117,18 @@ class Utils(object):
 
     def Phfp(self, F_t, w_t):
 
-        #res = 1 - np.exp(-1*(self.alpha * F_t + self.beta * w_t))
+        w_t_d = self.discretize_taskload(w_t)
+        res = 1 - np.exp(-1*(self.alpha * F_t + self.beta * w_t_d))
 
-        res = min(self.alpha * F_t+self.beta *w_t,1)
+        #res = min(self.alpha * F_t+self.beta *w_t,1)
 
         return res
     
     def Phtp(self, F_t, w_t):
-
-        #res_1 = 1 - np.exp(-1*(self.alpha * F_t + self.beta * w_t))
-        res_1 = min(F_t+self.beta *w_t,1)
+        
+        w_t_d = self.discretize_taskload(w_t)
+        res_1 = 1 - np.exp(-1*(self.alpha * F_t + self.beta * w_t_d))
+        #res_1 = min(self.alpha*F_t+self.beta *w_t,1)
         res = res_1**self.gamma
         return res
 
@@ -211,7 +144,7 @@ class Utils(object):
     Args:
         automation posterior: A list in the form [P(H0|Y), P(H1|Y)] for the automation observation 
         
-        w_t: The taskload at time t --> input type integer.
+        w_t: The taskload at time t --> input type integer 
         
         F_t: The level of fatigue in the range [0,1] --> input type values between 0 and 1 inclusive 
     '''
@@ -247,7 +180,7 @@ class Utils(object):
         F_t: The level of fatigue in the range [0,1] --> input type values between 0 and 1 inclusive 
     '''
 
-    def compute_G(self,automation_posterior, w_t, F_t):
+    def compute_G(self,automation_posterior, F_t, w_t):
 
         # automation_posterior is a list where [p(h0|y), p(h1|y)]
         # C_a = min(posterior_h0_k* cost(h_0,0)+posterior_h1_k*cost(h_0,1), posterior_h0_k* cost(h_1,0)+posterior_h1_k*cost(h_1,1))
@@ -291,13 +224,10 @@ class Utils(object):
 
     def per_step_cost(self,F_t, batched_posterior_h1, deferred_task_indices):
 
-        total_indices = list(range(self.num_tasks_per_batch))#[i for i in range(self.num_tasks_per_batch)]
+        total_indices = list(range(self.num_tasks_per_batch))
 
         auto_indices = list(set(total_indices)-set(deferred_task_indices))
        
-
-    
-
         w_t = len(deferred_task_indices)
 
         auto_cost_all_tasks = [
@@ -327,7 +257,7 @@ class Utils(object):
         ]
 
         human_cost_per_batch = sum(human_cost_all_deferred_tasks)
-        total_per_step_cost = auto_cost_per_batch + deferred_cost + human_cost_per_batch
+        #total_per_step_cost = auto_cost_per_batch + deferred_cost + human_cost_per_batch
 
         return auto_cost_per_batch, human_cost_per_batch, deferred_cost
 
@@ -397,8 +327,8 @@ class Utils(object):
         G_vals = [
             self.compute_G(
                 [batched_posterior_h0[k], batched_posterior_h1[k]],
-                w_t,
                 F_t,
+                w_t,
             )
             for k in range(num_tasks)
         ]
@@ -420,8 +350,9 @@ class Utils(object):
             [
                 self.compute_G(
                     [batched_posterior_h0[k], batched_posterior_h1[k]],
-                    w_t,
+                    
                     F_t,
+                    w_t
                     
                 )
                 for k in human_allocation_indices
@@ -435,33 +366,15 @@ class Utils(object):
 
     ################################################################################################################################
 
-    '''
-    Function that discretize the fatigue states 
-
-    Args:
-        F_t: The fatigue state at time t in the range [0,1]
-    '''
-    def discretize_fatigue_state(self,F):
-
-        bins = np.linspace(0, 1, self.num_bins_fatigue + 1)
-
-        discretized_data = np.digitize(F, bins)
-
-        # subtracting 1 since python is zero indexed
-        return discretized_data - 1
     
-
-    ###################################################################################################################################
-
-
    
     def compute_kesav_policy(self,F_t, batched_posterior_h0, batched_posterior_h1):
 
-        total_num_tasks = len(batched_posterior_h0)
+        
 
         all_gbar_w = []
         all_human_indices = []
-        for w_t in range(total_num_tasks+1):
+        for w_t in range(self.num_tasks_per_batch+1):
 
             human_allocation_indices, G_bar_w = self.algorithm_1_per_wl(batched_posterior_h0,batched_posterior_h1,w_t,F_t)
 
@@ -477,12 +390,7 @@ class Utils(object):
         return w_t_star, final_human_indices
 
 
-
-
-    
-
-
-
+    ## functions for computing inverse and q func
     def qfunc(self,x):
         return 0.5 * sp.erfc(x / np.sqrt(2))
     
@@ -490,46 +398,4 @@ class Utils(object):
         return np.sqrt(2) * stats.norm.ppf(1 - y)
 
 
-    ## The code for the roc plot needs editing 
-    def roc_plot(self):
-
-        false_positive_probs = np.arange(0,1+0.01, 0.01)
-
-        y_grid = np.arange(-100,100+0.05, 0.05)
-
-        wgrid = [i for i in range(self.num_tasks_per_batch+1)]
-
-        Ptps_automation = [self.qfunc(self.qfuncinv(i)-self.d_0/self.sigma_a) for i in false_positive_probs]
-
-        plt.plot(false_positive_probs, Ptps_automation,color='red',label='ROC-Automation',linewidth=3)
-
-        ## plotting the roc curve for the human 
-
-        F_states = np.round(np.linspace(0, 1, self.num_bins_fatigue + 1), 2)
-
-        for F_t in F_states:
-
-            for w_t in range(self.num_tasks_per_batch+1):
-
-                
-
-                #P_tps_human  = [self.qfunc(self.qfuncinv(i)- d_0_wf/self.sigma_h) for i in false_positive_probs]
-                plt.plot(false_positive_probs, P_tps_human,color='blue', linestyle='--')
-
-        
-        save_path = self.args.results_path +'num_tasks '+str(self.args.num_tasks_per_batch)+'/ROC_Plots/'
-
-        if not os.path.exists(save_path):
-
-            try:
-                os.makedirs(save_path,exist_ok=True)
-            except FileExistsError:
-                pass
-
-        plt.savefig(save_path+'roc_plot_alpha_'+str(self.alpha)+'_beta_'+str(self.beta)+'_mu_'+str(self.mu)+'_lambda_'+str(self.lamda)+'.pdf')
-
-        plt.clf()
-        plt.close()
-
-        return
     

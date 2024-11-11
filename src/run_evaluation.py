@@ -2,11 +2,11 @@ import matplotlib.pyplot as plt
 import os
 import numpy as np 
 from tqdm import tqdm
-import json 
 from utils import Utils 
 import matplotlib
 import pickle
 from envs.fatigue_model_1 import FatigueMDP
+import contextlib
 matplotlib.use('Agg')
 
 
@@ -16,68 +16,9 @@ class Evaluations(object):
         self.args = args
         self.env = FatigueMDP()
 
-        
-
-
-
-    '''
-
-    Function that computes Kesav's algorithm
-
-    Args:
-        batched_obs: A batch of observation for the automation
-        batched_posterior_h0: A list consisting of posterior value of H0 given observation. 
-        batched_posterior_h1: A list consisting of posterior value of H1 given observation. 
-        F_t: The fatigue state at time t in the range [0.1]
-        ut: a utility object from the class Utility
-
-    Returns:
-        optimal workload for the human
-
-    '''
-
-    def compute_kesavs_algo(self,
-        batched_posterior_h0,
-        batched_posterior_h1,
-        F_t,
-        ut
-    ):
-
-        all_cost = []
-    
-        all_deferred_indices =[]
-
-        for w_t in range(ut.num_tasks_per_batch+1):
-
-            cstar, deferred_indices, gbar = ut.compute_cstar(
-                F_t,
-                w_t,
-                batched_posterior_h0,
-                batched_posterior_h1,
-            
-            )
-    
+        self.num_tasks_per_batch = args.num_tasks_per_batch
 
         
-        
-
-            all_cost.append(cstar)
-            
-
-            all_deferred_indices.append(deferred_indices)
-        
-    
-        min_idx = np.argmin(all_cost)
-
-        min_cost = all_cost[min_idx]
-
-        deferred_idx_dp = all_deferred_indices[min_idx]
-
-        w_star = min_idx
-
-        return w_star, deferred_idx_dp
-
-
     '''
     Function that computes the optimal workload using the adp solution
     '''
@@ -98,7 +39,7 @@ class Evaluations(object):
         f_t_evol = []
         all_cstars = []
 
-        for w_t in range(ut.num_tasks_per_batch+1):
+        for w_t in range(self.num_tasks_per_batch+1):
 
             w_t_discrete = ut.discretize_taskload(w_t)
 
@@ -128,19 +69,19 @@ class Evaluations(object):
         
         min_idx = np.argmin(all_cost)
 
-        min_cost = all_cost[min_idx]
+        #min_cost = all_cost[min_idx]
 
-        wl_dp = min_idx
+        wl_adp = min_idx
         
-        defrred_idx_dp = all_deferred_indices[min_idx]
+        defrred_idx_adp = all_deferred_indices[min_idx]
 
-        return wl_dp, defrred_idx_dp
+        return wl_adp, defrred_idx_adp
 
 
     def compute_performance(self):
         
         
-        print("Computing peformance with beta = "+str(self.args.beta)+'\n')
+        print("Computing peformance")
 
         
         ut = Utils(self.args)
@@ -177,7 +118,6 @@ class Evaluations(object):
             #initial fatigue for adp
             F_adp = 0
 
-            F_adp_new=0
 
             auto_cost_adp = 0
             human_cost_adp = 0
@@ -200,7 +140,7 @@ class Evaluations(object):
 
                 _, batched_posterior_h0, batched_posterior_h1=mega_batch[t]
 
-                wl_k, deferred_idx_k = self.compute_kesavs_algo(batched_posterior_h0, batched_posterior_h1, F_k, ut)
+                wl_k, deferred_idx_k = ut.compute_kesav_policy(F_k,batched_posterior_h0, batched_posterior_h1)
 
                 wl_adp, deferred_idx_adp = self.compute_adp_solution(batched_posterior_h0,batched_posterior_h1,F_adp, V_bar,ut)
 
@@ -265,10 +205,8 @@ class Evaluations(object):
 
         path1 = self.args.results_path + 'num_tasks '+str(self.args.num_tasks_per_batch)+'/alpha '+str(self.args.alpha)+'/beta '+str(self.args.beta)+'/gamma '+str(self.args.gamma)+'/plot_analysis/cost_comparison/'
         if not os.path.exists(path1):
-            try:
+            with contextlib.suppress(FileExistsError):
                 os.makedirs(path1,exist_ok=True)
-            except FileExistsError:
-                pass
         
         
 
@@ -323,14 +261,6 @@ class Evaluations(object):
 
 
     def run_evaluation(self):
-
-        ## loading the parameters
-
-        
-        
-       
-
-        
         
 
         ut = Utils(self.args)
@@ -365,7 +295,7 @@ class Evaluations(object):
 
             batched_obs, batched_posterior_h0, batched_posterior_h1= mega_obs[t]
 
-            wl_k, deferred_idx_k = self.compute_kesavs_algo(batched_posterior_h0, batched_posterior_h1, F_k, ut)
+            wl_k, deferred_idx_k = ut.compute_kesav_policy(F_k,batched_posterior_h0, batched_posterior_h1)
 
             wl_adp, deferred_idx_adp = self.compute_adp_solution(batched_posterior_h0,batched_posterior_h1,F_adp, V_bar,ut)
 
@@ -414,10 +344,8 @@ class Evaluations(object):
         path_name = self.args.results_path + 'num_tasks '+str(self.args.num_tasks_per_batch)+'/alpha '+str(self.args.alpha)+'/beta '+str(self.args.beta)+'/gamma '+str(self.args.gamma)+'/plot_analysis/'
 
         if not os.path.exists(path_name):
-            try:
+            with contextlib.suppress(FileExistsError):
                 os.makedirs(path_name,exist_ok=True)
-            except FileExistsError:
-                pass
         
         
         
@@ -433,33 +361,34 @@ class Evaluations(object):
         with open(path_name+'all_taskload_adp.pkl','wb') as file4:
             pickle.dump(all_taskload_adp,file4)
 
+        sample_path_choose = 3
         
-        median_fatigue_k = np.median(all_fatigue_kesav,axis=0)
+        median_fatigue_k =  all_fatigue_kesav[sample_path_choose]#np.median(all_fatigue_kesav,axis=0)
         std_fatigue_k_lower = np.percentile(all_fatigue_kesav,25,axis=0)
         std_fatigue_k_higher = np.percentile(all_fatigue_kesav,75,axis=0)
 
 
-        median_fatigue_adp = np.median(all_fatigue_adp,axis=0)
+        median_fatigue_adp = all_fatigue_adp[sample_path_choose]#np.median(all_fatigue_adp,axis=0)
         std_fatigue_adp_lower = np.percentile(all_fatigue_adp,25,axis=0)
         std_fatigue_adp_higher = np.percentile(all_fatigue_adp,75,axis=0)
 
 
-        median_taskload_k = np.median(all_taskload_kesav,axis=0)
+        median_taskload_k = all_taskload_kesav[sample_path_choose]#np.median(all_taskload_kesav,axis=0)
         std_taskload_k_lower = np.percentile(all_taskload_kesav,25,axis=0)
         std_taskload_k_higher = np.percentile(all_taskload_kesav,75,axis=0)
 
         
 
-        median_taskload_adp = np.median(all_taskload_adp,axis=0)
+        median_taskload_adp = all_taskload_adp[sample_path_choose]#np.median(all_taskload_adp,axis=0)
         std_taskload_adp_lower = np.percentile(all_taskload_adp,25,axis=0)
         std_taskload_adp_higher = np.percentile(all_taskload_adp,75,axis=0)
 
 
         plt.step(np.arange(1,self.args.horizon+1,1),median_fatigue_k,color='black',where='post',label='K-Algorithm')
-        plt.fill_between(np.arange(1,self.args.horizon+1,1), std_fatigue_k_lower, std_fatigue_k_higher,step='post', alpha=0.2, color='black')
+        #plt.fill_between(np.arange(1,self.args.horizon+1,1), std_fatigue_k_lower, std_fatigue_k_higher,step='post', alpha=0.2, color='black')
 
         plt.step(np.arange(1,self.args.horizon+1,1),median_fatigue_adp,color='orange',where='post',label='ADP')
-        plt.fill_between(np.arange(1,self.args.horizon+1,1), std_fatigue_adp_lower, std_fatigue_adp_higher,step='post', alpha=0.2, color='orange')
+        #plt.fill_between(np.arange(1,self.args.horizon+1,1), std_fatigue_adp_lower, std_fatigue_adp_higher,step='post', alpha=0.2, color='orange')
 
         plt.grid(True)
         
@@ -474,10 +403,10 @@ class Evaluations(object):
 
 
         plt.step(np.arange(1,self.args.horizon+1,1),median_taskload_k,color='black',where='post',label='K-Algorithm')
-        plt.fill_between(np.arange(1,self.args.horizon+1,1), std_taskload_k_lower, std_taskload_k_higher,step='post', alpha=0.2, color='black')
+        #plt.fill_between(np.arange(1,self.args.horizon+1,1), std_taskload_k_lower, std_taskload_k_higher,step='post', alpha=0.2, color='black')
 
         plt.step(np.arange(1,self.args.horizon+1,1),median_taskload_adp,color='orange',where='post',label='ADP')
-        plt.fill_between(np.arange(1,self.args.horizon+1,1), std_taskload_adp_lower, std_taskload_adp_higher,step='post', alpha=0.2, color='orange')
+        #plt.fill_between(np.arange(1,self.args.horizon+1,1), std_taskload_adp_lower, std_taskload_adp_higher,step='post', alpha=0.2, color='orange')
         
     
         plt.xlabel('Time')
