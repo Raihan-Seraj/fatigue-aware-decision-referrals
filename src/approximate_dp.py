@@ -2,6 +2,7 @@ import numpy as np
 from utils import Utils
 from run_evaluation import Evaluations
 from envs.fatigue_model_1 import FatigueMDP
+from envs.fatigue_model_2 import FatigueMDP2
 from tqdm import tqdm
 import json
 import os
@@ -23,16 +24,22 @@ Args:
 '''
 
 
-def approximate_dynamic_program(T, num_expectation_samples,ut):
+def approximate_dynamic_program(T, num_expectation_samples,ut,model_name):
 
-    env = FatigueMDP()
+    
+    if model_name.lower()=='fatigue_model_1':
+        env = FatigueMDP()
+
+    elif model_name.lower()=='fatigue_model_2':
+        env = FatigueMDP2()
+
 
     num_fatigue_states = env.num_fatigue_states
     
     # initializing the value of V_bar
     V_bar = {t: np.zeros((num_fatigue_states + 1)) for t in range(T + 2)}
     
-    V_bar_k = {t: np.zeros((num_fatigue_states + 1)) for t in range(T + 2)}
+    #V_bar_k = {t: np.zeros((num_fatigue_states + 1)) for t in range(T + 2)}
 
     
     
@@ -43,73 +50,79 @@ def approximate_dynamic_program(T, num_expectation_samples,ut):
         for  F_t in range(num_fatigue_states):
 
             sum_y = 0
-            sum_y_k=0
+            #sum_y_k=0
             # number of expectation samples of Y
             
             for y in range(num_expectation_samples):
                 
-                expectation_f = 0
-                for F_next_t in range(num_fatigue_states):
+                #expectation_f = 0
                 
-                    min_cost = float('inf')
-                    _, batched_posterior_h0, batched_posterior_h1 = ut.get_auto_obs()
-                    
-                    w_t_k, deferred_k = ut.compute_kesav_policy(F_t,batched_posterior_h0,batched_posterior_h1)
-                    
-                    w_t_k_discretized = ut.discretize_taskload(w_t_k)
+                min_cost = float('inf')
+                _, batched_posterior_h0, batched_posterior_h1 = ut.get_auto_obs()
+                
+                #w_t_k, deferred_k = ut.compute_kesav_policy(F_t,batched_posterior_h0,batched_posterior_h1)
+                
+                #w_t_k_discretized = ut.discretize_taskload(w_t_k)
 
-                    all_costs_per_w = []
-                    for w_t in range(ut.num_tasks_per_batch + 1):
+                all_costs_per_w = []
+                for w_t in range(ut.num_tasks_per_batch + 1):
 
-                        ## computing the expectation
-                        
-                        cstar, _, _ = ut.compute_cstar(
-                            F_t,
-                            w_t,
-                            batched_posterior_h0,
-                            batched_posterior_h1,
-                        )
+                    ## computing the expectation
+                    cstar, _, _ = ut.compute_cstar(
+                        F_t,
+                        w_t,
+                        batched_posterior_h0,
+                        batched_posterior_h1,
+                    )
 
-                        
-                        total_cost = cstar + V_bar[t + 1][F_next_t] 
 
-                        all_costs_per_w.append(total_cost)
+                    if model_name.lower()=='fatigue_model_1':
+                        w_t_discrete = ut.discretize_taskload(w_t)
 
-                    
-                    w_minimum_cost = np.argmin(all_costs_per_w)
+                        F_next_t = env.next_state(F_t,w_t_discrete)
+                    elif model_name.lower()=='fatigue_model_2':
 
-                    min_cost = min(all_costs_per_w)
+                        _, F_next_t = env.next_state(F_t,w_t)
+                    else:
+                        raise ValueError("Invalid fatigue model name")
 
-                    w_min_discretized = ut.discretize_taskload(w_minimum_cost)
-                    
-                    expectation_f+=env.P[w_min_discretized][F_t,F_next_t]*min_cost
+                    total_cost = cstar + V_bar[t + 1][F_next_t] 
+
+                    all_costs_per_w.append(total_cost)
+
+                
+                w_minimum_cost = np.argmin(all_costs_per_w)
+
+                min_cost = min(all_costs_per_w)
+
+               
           
-                V_t = expectation_f
+                V_t = min_cost
 
                 
-                cstar_k,_,_ = ut.compute_cstar(F_t, w_t_k, batched_posterior_h0,batched_posterior_h1)
+                #cstar_k,_,_ = ut.compute_cstar(F_t, w_t_k, batched_posterior_h0,batched_posterior_h1)
                 
-                total_cost_k = cstar_k
+                #total_cost_k = cstar_k
                 
-                F_next_k = env.next_state(F_t,w_t_k_discretized)
+                #F_next_k = env.next_state(F_t,w_t_k_discretized)
 
                
                 
-                V_t_k = total_cost_k + V_bar_k[t+1][F_next_k] 
+                #V_t_k = total_cost_k + V_bar_k[t+1][F_next_k] 
 
                 sum_y += V_t
-                sum_y_k+=V_t_k
+                #sum_y_k+=V_t_k
 
             expected_value = sum_y / num_expectation_samples
-            expected_value_k = sum_y_k/ num_expectation_samples
+            #expected_value_k = sum_y_k/ num_expectation_samples
 
             V_bar[t][F_t] = expected_value
-            V_bar_k[t][F_t]= expected_value_k
+            #V_bar_k[t][F_t]= expected_value_k
 
             
 
 
-    return V_bar, V_bar_k
+    return V_bar #V_bar_k
 
 
 
@@ -140,7 +153,15 @@ def run_approximate_dynamic_program(args):
     
     ut = Utils(args)
     
-    
+    model_name = args.model_name
+
+    # if model_name.lower()=='fatigue_model_1':
+
+    #     env = FatigueMDP()
+    # elif model_name.lower()=='fatigue_model_2':
+    #     env = FatigueMDP2()
+    # else:
+    #     raise ValueError("Invalid fatigue model")
     
     
     
@@ -159,7 +180,7 @@ def run_approximate_dynamic_program(args):
 
     
     
-    V_func, V_func_k_pol = approximate_dynamic_program(T, num_expectation_samples,ut
+    V_func  = approximate_dynamic_program(T, num_expectation_samples,ut,model_name
         
     )
     
@@ -167,15 +188,15 @@ def run_approximate_dynamic_program(args):
 
     V_final = V_func[0]
 
-    V_final_k_pol = V_func_k_pol[0]
+   # V_final_k_pol = V_func_k_pol[0]
 
     with open(path_name + 'V_func.pkl','wb') as file:
         pickle.dump(V_func,file)
     np.save(path_name + "V_bar.npy", V_final)
 
-    with open(path_name + 'V_func_k_pol.pkl','wb') as file1:
-        pickle.dump(V_func_k_pol,file1)
-    np.save(path_name + "V_bar_k_pol.npy", V_final_k_pol)
+    # with open(path_name + 'V_func_k_pol.pkl','wb') as file1:
+    #     pickle.dump(V_func_k_pol,file1)
+    # np.save(path_name + "V_bar_k_pol.npy", V_final_k_pol)
     
     
 
@@ -223,7 +244,7 @@ def main():
 
     parser.add_argument('--run_eval_only', type=bool, default=False)
     parser.add_argument('--num_eval_runs', type=int, default=500, help="Number of independent runs for monte carlo performance evaluation")
-
+    parser.add_argument('--model_name', type=str,default='fatigue_model_1',  help='The fatigue model to choose options are [fatigue_model_1, fatigue_model_2]')
     args = parser.parse_args()
 
     

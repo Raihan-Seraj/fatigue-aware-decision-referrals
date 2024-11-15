@@ -3,8 +3,9 @@ from scipy.stats import norm
 import scipy.special as sp
 import scipy.stats as stats
 from envs.fatigue_model_1 import FatigueMDP
+from envs.fatigue_model_2 import FatigueMDP2
 import matplotlib
-matplotlib.use('Agg')
+#matplotlib.use('Agg')
 
 
 
@@ -45,13 +46,21 @@ class Utils(object):
         self.cfp = self.args.cfp 
         self.cfn = self.args.cfn
         self.cm = self.args.cm
-        self.num_bins_fatigue = self.args.num_bins_fatigue 
-        self.fatigue_model = self.args.fatigue_model 
         self.cfr = np.log( ( (self.cfp-self.ctn)*self.prior[0])/ ((self.cfn-self.ctp)*self.prior[1])  )
-        self.env = FatigueMDP()
+        self.model_name = args.model_name
+        
+        if args.model_name.lower()=='fatigue_model_1':
+            self.env = FatigueMDP()
+            # number of bins to discretize the taskload 
+            self.num_bins = np.linspace(0, self.num_tasks_per_batch, self.env.num_actions)
+        elif args.model_name.lower()=='fatigue_model_2':
+            self.env = FatigueMDP2()
+        
+        else:
+            raise ValueError("Invalid Fatigue Model")
+        
 
-        # number of bins to discretize the taskload 
-        self.num_bins = np.linspace(0, self.num_tasks_per_batch, self.env.num_actions)
+        
 
     
     def discretize_taskload(self,w_t):
@@ -117,19 +126,44 @@ class Utils(object):
 
     def Phfp(self, F_t, w_t):
 
-        w_t_d = self.discretize_taskload(w_t)
-        res = 1 - np.exp(-1*(self.alpha * F_t + self.beta * w_t_d))
+        if self.model_name.lower()=='fatigue_model_1':
 
-        #res = min(self.alpha * F_t+self.beta *w_t,1)
+            false_pos_dict = {0:{0: 0.01, 1: 0.03, 2: 0.05},
+                                1:{0: 0.3, 1: 0.4, 2: 0.5},
+                                2:{0:0.6, 1:0.8, 2:1}}
+            w_t_d = self.discretize_taskload(w_t)
+    
+
+            res = false_pos_dict[F_t][w_t_d]
+
+            assert 0 <= res <= 1, "The probability of false positive should be [0,1]"
+        
+        elif self.model_name.lower()=='fatigue_model_2':
+
+            res = min(F_t + 0.001 *w_t,1)
+        
+        else:
+            raise ValueError("Invalid fatigue model")
+
+       
 
         return res
     
     def Phtp(self, F_t, w_t):
         
-        w_t_d = self.discretize_taskload(w_t)
-        res_1 = 1 - np.exp(-1*(self.alpha * F_t + self.beta * w_t_d))
-        #res_1 = min(self.alpha*F_t+self.beta *w_t,1)
-        res = res_1**self.gamma
+
+        if self.model_name.lower()=='fatigue_model_1':
+            w_t_d = self.discretize_taskload(w_t)
+
+            res_1 = self.Phfp(F_t,w_t_d)
+
+            assert 0 <= res_1 <= 1, "The probability of true positive should be [0,1]"
+
+            res = res_1**self.gamma
+        
+        elif self.model_name.lower()=='fatigue_model_2':
+            res_1 = self.Phfp(F_t, w_t)
+            res = max(res_1,1e-8) ** self.gamma
         return res
 
 

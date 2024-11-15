@@ -199,7 +199,7 @@ def plot_human_perf_vs_taskload(beta, result_path):
 
 def create_complete_performance_table():
 
-	result_path = 'results/'
+	result_path = 'res2/'
 	num_tasks_per_batch=20
 	
 	# beta = 0.5
