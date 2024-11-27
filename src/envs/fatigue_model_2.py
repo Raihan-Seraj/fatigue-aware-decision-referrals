@@ -11,9 +11,9 @@ class FatigueMDP2():
         self.num_fatigue_states = 11
         self.num_actions = 21
         self.start_state = 0
-        self.w_0  = 10
-        self.mu = 0.03
-        self.lamda = 0.07
+        self.w_0  = 17
+        self.mu = 1
+        self.lamda = 1
         self.num_bins_fatigue = 10
         self.discrete_bins = np.linspace(0, 1, self.num_bins_fatigue+1)
         
@@ -22,7 +22,7 @@ class FatigueMDP2():
 
        
 
-        R_t = current_state #* np.exp(-self.mu * max((self.w_0 - taskload), 0))
+        R_t = current_state * np.exp(-self.mu * max((self.w_0 - taskload), 0))
 
         F_next = R_t + (1 - R_t) * (1 - np.exp(-self.lamda * taskload))
 

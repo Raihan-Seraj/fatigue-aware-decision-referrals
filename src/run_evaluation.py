@@ -49,7 +49,7 @@ class Evaluations(object):
         f_t_evol = []
         all_cstars = []
 
-        for w_t in range(self.num_tasks_per_batch+1):
+        for w_t in range(self.num_tasks_per_batch):
 
             if self.model_name.lower()=='fatigue_model_1':
 
@@ -77,9 +77,12 @@ class Evaluations(object):
             )
             
             ## fixme
-            future_cost = V_bar[F_tp1]
+            expected_future_cost=0
+            for F_next in range(self.env.num_fatigue_states):
+                w_t_d = ut.discretize_taskload(w_t)
+                expected_future_cost += self.env.P[w_t_d][F_t,F_next]*V_bar[F_next]
 
-            total_cost = cstar + future_cost
+            total_cost = cstar + expected_future_cost
             
             all_cost.append(total_cost)
             all_cstars.append(cstar)
@@ -98,6 +101,8 @@ class Evaluations(object):
         return wl_adp, defrred_idx_adp
 
 
+   
+
     def compute_performance(self):
         
         
@@ -106,9 +111,14 @@ class Evaluations(object):
         
         ut = Utils(self.args)
         
+        open_path  = self.args.results_path + 'num_tasks '+str(self.args.num_tasks_per_batch)+'/alpha '+str(self.args.alpha)+'/beta '+str(self.args.beta)+'/gamma '+str(self.args.gamma)+'/'
+        
+        with open(open_path + 'V_func.pkl','rb') as file1:
+            V_bar = pickle.load(file1)
         
 
-        V_bar = np.load(self.args.results_path + 'num_tasks '+str(self.args.num_tasks_per_batch)+'/alpha '+str(self.args.alpha)+'/beta '+str(self.args.beta)+'/gamma '+str(self.args.gamma)+'/V_bar.npy')
+
+        #V_bar = np.load(self.args.results_path + 'num_tasks '+str(self.args.num_tasks_per_batch)+'/alpha '+str(self.args.alpha)+'/beta '+str(self.args.beta)+'/gamma '+str(self.args.gamma)+'/V_bar.npy')
 
         num_runs = self.args.num_eval_runs
 
@@ -162,7 +172,7 @@ class Evaluations(object):
 
                 wl_k, deferred_idx_k = ut.compute_kesav_policy(F_k,batched_posterior_h0, batched_posterior_h1)
 
-                wl_adp, deferred_idx_adp = self.compute_adp_solution(batched_posterior_h0,batched_posterior_h1,F_adp, V_bar,ut)
+                wl_adp, deferred_idx_adp = self.compute_adp_solution(batched_posterior_h0,batched_posterior_h1,F_adp, V_bar[t],ut)
 
                 
                 
@@ -294,8 +304,12 @@ class Evaluations(object):
 
         ut = Utils(self.args)
 
+        open_path = self.args.results_path + 'num_tasks '+str(self.args.num_tasks_per_batch)+'/alpha '+str(self.args.alpha)+'/beta '+str(self.args.beta)+'/gamma '+str(self.args.gamma)+'/'
+
+        with open(open_path+'V_func.pkl','rb') as file:
+            V_bar = pickle.load(file)
        
-        V_bar = np.load(self.args.results_path + 'num_tasks '+str(self.args.num_tasks_per_batch)+'/alpha '+str(self.args.alpha)+'/beta '+str(self.args.beta)+'/gamma '+str(self.args.gamma)+'/V_bar.npy')
+        #V_bar = np.load(self.args.results_path + 'num_tasks '+str(self.args.num_tasks_per_batch)+'/alpha '+str(self.args.alpha)+'/beta '+str(self.args.beta)+'/gamma '+str(self.args.gamma)+'/V_bar.npy')
 
 
         ## initial fatigue is for kesav 0
@@ -326,7 +340,7 @@ class Evaluations(object):
 
             wl_k, deferred_idx_k = ut.compute_kesav_policy(F_k,batched_posterior_h0, batched_posterior_h1)
 
-            wl_adp, deferred_idx_adp = self.compute_adp_solution(batched_posterior_h0,batched_posterior_h1,F_adp, V_bar,ut)
+            wl_adp, deferred_idx_adp = self.compute_adp_solution(batched_posterior_h0,batched_posterior_h1,F_adp, V_bar[t],ut)
 
 
             if self.model_name.lower()=='fatigue_model_1':

@@ -128,14 +128,18 @@ class Utils(object):
 
         if self.model_name.lower()=='fatigue_model_1':
 
-            false_pos_dict = {0:{0: 0.01, 1: 0.03, 2: 0.05},
-                                1:{0: 0.3, 1: 0.4, 2: 0.5},
-                                2:{0:0.6, 1:0.8, 2:1}}
+            # false_pos_dict = {0:{0: 0.01, 1: 0.02, 2: 0.03},
+            #                     1:{0: 0.05, 1: 0.07, 2: 0.09},
+            #                     2:{0:0.3, 1:0.34, 2:0.35},
+            #                     3:{0:0.6, 1: 0.66, 2: 0.7},
+            #                     4:{0:0.9, 1:0.95, 2: 0.99}}
             w_t_d = self.discretize_taskload(w_t)
     
+            false_pos_func = (0.3 * F_t + 0.1 * w_t_d)/3
+            # res = false_pos_dict[F_t][w_t_d]
 
-            res = false_pos_dict[F_t][w_t_d]
 
+            res = false_pos_func
             assert 0 <= res <= 1, "The probability of false positive should be [0,1]"
         
         elif self.model_name.lower()=='fatigue_model_2':
@@ -153,13 +157,19 @@ class Utils(object):
         
 
         if self.model_name.lower()=='fatigue_model_1':
-            w_t_d = self.discretize_taskload(w_t)
+        
 
-            res_1 = self.Phfp(F_t,w_t_d)
+            w_t_d = self.discretize_taskload(w_t)
+            true_pos_func = 1 - (0.2*F_t + 0.1*w_t_d)/2.5
+
+            res_1 = true_pos_func
+            
+            #res_1 = 1-F_t/5 - 0.2 *w_t/20
 
             assert 0 <= res_1 <= 1, "The probability of true positive should be [0,1]"
 
-            res = res_1**self.gamma
+            res = res_1
+            #res = res_1
         
         elif self.model_name.lower()=='fatigue_model_2':
             res_1 = self.Phfp(F_t, w_t)
@@ -408,7 +418,7 @@ class Utils(object):
 
         all_gbar_w = []
         all_human_indices = []
-        for w_t in range(self.num_tasks_per_batch+1):
+        for w_t in range(self.num_tasks_per_batch):
 
             human_allocation_indices, G_bar_w = self.algorithm_1_per_wl(batched_posterior_h0,batched_posterior_h1,w_t,F_t)
 

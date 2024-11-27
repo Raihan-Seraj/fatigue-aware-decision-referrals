@@ -35,94 +35,87 @@ def approximate_dynamic_program(T, num_expectation_samples,ut,model_name):
 
 
     num_fatigue_states = env.num_fatigue_states
-    
-    # initializing the value of V_bar
-    V_bar = {t: np.zeros((num_fatigue_states + 1)) for t in range(T + 2)}
-    
-    #V_bar_k = {t: np.zeros((num_fatigue_states + 1)) for t in range(T + 2)}
 
-    
-    
-    # looping over time
-    for t in tqdm(range(T, -1, -1)):
+    V_post = [{} for _ in range(T+1)]  # V_t^a(F_t^a)
+    #V_post_kesav = [{} for _ in range(T+1)]
 
-        # looping over all fatigue states
-        for  F_t in range(num_fatigue_states):
+    # Terminal value
+    for F_T in range(num_fatigue_states):
+        
+        expected_terminal_value = 0
 
-            sum_y = 0
-            #sum_y_k=0
-            # number of expectation samples of Y
+        for _ in range(num_expectation_samples):
+            Y_T_vec, batched_posterior_h0_T, batched_posterior_h1_T = ut.get_auto_obs() 
+
+            best_action_value = float('inf')
+            for w_t in range(ut.num_tasks_per_batch):
+
+                cstar , _ , _ = ut.compute_cstar(F_T, w_t, batched_posterior_h0_T, batched_posterior_h1_T)
+
+                best_action_value = min(best_action_value,cstar)
+
+            expected_terminal_value += best_action_value/num_expectation_samples
             
-            for y in range(num_expectation_samples):
-                
-                #expectation_f = 0
-                
-                min_cost = float('inf')
-                _, batched_posterior_h0, batched_posterior_h1 = ut.get_auto_obs()
-                
-                #w_t_k, deferred_k = ut.compute_kesav_policy(F_t,batched_posterior_h0,batched_posterior_h1)
-                
-                #w_t_k_discretized = ut.discretize_taskload(w_t_k)
+        V_post[T][F_T] = expected_terminal_value
 
-                all_costs_per_w = []
-                for w_t in range(ut.num_tasks_per_batch + 1):
+    ###############done #################################
 
-                    ## computing the expectation
-                    cstar, _, _ = ut.compute_cstar(
-                        F_t,
-                        w_t,
-                        batched_posterior_h0,
-                        batched_posterior_h1,
-                    )
+    #performing backward iteration 
 
+    for t in tqdm(range(T-1,-1,-1)):
 
-                    if model_name.lower()=='fatigue_model_1':
-                        w_t_discrete = ut.discretize_taskload(w_t)
+        for F_t_a in range(num_fatigue_states):
 
-                        F_next_t = env.next_state(F_t,w_t_discrete)
-                    elif model_name.lower()=='fatigue_model_2':
-
-                        _, F_next_t = env.next_state(F_t,w_t)
-                    else:
-                        raise ValueError("Invalid fatigue model name")
-
-                    total_cost = cstar + V_bar[t + 1][F_next_t] 
-
-                    all_costs_per_w.append(total_cost)
-
-                
-                w_minimum_cost = np.argmin(all_costs_per_w)
-
-                min_cost = min(all_costs_per_w)
-
-               
           
-                V_t = min_cost
+        
+
+            expected_value = 0
+            
+            for _ in range(num_expectation_samples):
+
+                y_t, batched_posterior_h0_t, batched_posterior_h1_t = ut.get_auto_obs()
 
                 
-                #cstar_k,_,_ = ut.compute_cstar(F_t, w_t_k, batched_posterior_h0,batched_posterior_h1)
-                
-                #total_cost_k = cstar_k
-                
-                #F_next_k = env.next_state(F_t,w_t_k_discretized)
+                best_action_value = float('inf')
 
                
+
+                #w_t_k = ut.compute_kesav_policy(F_t_a, batched_posterior_h0_t, batched_posterior_h1_t)
+
+             
+
+                for w_t in range(ut.num_tasks_per_batch):
+
+                    w_t_discrete = ut.discretize_taskload(w_t)
+
+                    F_next  = env.next_state(F_t_a,w_t_discrete)
+
+                    cstar, _, _ = ut.compute_cstar(F_t_a,w_t,batched_posterior_h0_t, batched_posterior_h1_t)
+                    
+                    V_expectations_epsilon = 0
+                    for F_next in range(num_fatigue_states):
+
+                        V_expectations_epsilon+= env.P[w_t_discrete][F_t_a,F_next] * V_post[t+1][F_next]
+
+                    best_action_value = min(cstar + V_expectations_epsilon, best_action_value)
                 
-                #V_t_k = total_cost_k + V_bar_k[t+1][F_next_k] 
+                
 
-                sum_y += V_t
-                #sum_y_k+=V_t_k
+                
+                
+                expected_value += best_action_value/num_expectation_samples
+                
 
-            expected_value = sum_y / num_expectation_samples
-            #expected_value_k = sum_y_k/ num_expectation_samples
+                
+                
+            V_post[t][F_t_a]=expected_value
 
-            V_bar[t][F_t] = expected_value
-            #V_bar_k[t][F_t]= expected_value_k
-
-            
+            #V_post_kesav[t][F_t_a] = expected_value_kesav
 
 
-    return V_bar #V_bar_k
+   
+    
+    return V_post
 
 
 
@@ -193,6 +186,9 @@ def run_approximate_dynamic_program(args):
     with open(path_name + 'V_func.pkl','wb') as file:
         pickle.dump(V_func,file)
     np.save(path_name + "V_bar.npy", V_final)
+
+    # with open(path_name+'policy_func,pkl','wb') as file1:
+    #     pickle.dump(policy,file1)
 
     # with open(path_name + 'V_func_k_pol.pkl','wb') as file1:
     #     pickle.dump(V_func_k_pol,file1)
