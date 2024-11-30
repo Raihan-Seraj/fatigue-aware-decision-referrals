@@ -220,9 +220,9 @@ def create_complete_performance_table():
 	return
 
 
-def plot_taskload_comparison(result_path, num_tasks, beta, alpha, mu, lamda):
+def plot_taskload_comparison(result_path, num_tasks, alpha,beta,gamma):
 
-	path = result_path + 'num_tasks '+str(num_tasks)+'/beta '+str(beta)+'/alpha '+str(alpha)+'/mu_'+str(mu)+'_lambda_'+str(lamda)+'/plot_analysis/'
+	path = result_path + 'num_tasks '+str(num_tasks)+'/alpha '+str(alpha)+'/beta '+str(beta)+'/gamma '+str(gamma)+'/plot_analysis/'
 
 	adp_path = path + 'all_taskload_adp.pkl'
 
@@ -283,9 +283,9 @@ def plot_taskload_comparison(result_path, num_tasks, beta, alpha, mu, lamda):
 
 
 
-def plot_fatigue_comparison(result_path, num_tasks, beta, alpha, mu, lamda):
+def plot_fatigue_comparison(result_path, num_tasks,alpha,beta,gamma):
 
-	path = result_path + 'num_tasks '+str(num_tasks)+'/beta '+str(beta)+'/alpha '+str(alpha)+'/mu_'+str(mu)+'_lambda_'+str(lamda)+'/plot_analysis/'
+	path = result_path + 'num_tasks '+str(num_tasks)+'/alpha '+str(alpha)+'/beta '+str(beta)+'/gamma '+str(gamma)+'/plot_analysis/'
 
 	adp_path = path + 'all_fatigue_adp.pkl'
 
@@ -349,9 +349,9 @@ def plot_fatigue_comparison(result_path, num_tasks, beta, alpha, mu, lamda):
 	plt.clf()
 
 
-def plot_performance(result_path, num_tasks, beta, alpha, mu, lamda):
+def plot_performance(result_path, num_tasks, alpha,beta,gamma):
 
-	path=result_path + 'num_tasks '+str(num_tasks)+'/beta '+str(beta)+'/alpha '+str(alpha)+'/mu_'+str(mu)+'_lambda_'+str(lamda)+'/plot_analysis/cost_comparison/'
+	path=result_path + 'num_tasks '+str(num_tasks)+'/alpha '+str(alpha)+'/beta '+str(beta)+'/gamma '+str(gamma)+'/plot_analysis/cost_comparison/'
 
 	auto_cost_adp_path = path +'all_auto_cost_adp.npy'
 
@@ -402,24 +402,22 @@ def plot_performance(result_path, num_tasks, beta, alpha, mu, lamda):
 
 if __name__=='__main__':
 
-	create_complete_performance_table()
+	#create_complete_performance_table()
 
 
       
-	# result_path = 'results/'
+	result_path = 'results/'
 	
-	# num_tasks=20
+	num_tasks=20
 	
-	# beta=0.5
+	beta=0.1
 	
-	# alpha=1.0
+	alpha=0.1
 	
-	# mu=0.05
-	
-	# lamda=0.07
+	gamma = 0.1
 
 
-	# plot_taskload_comparison(result_path, num_tasks, beta, alpha, mu, lamda)
-	# plot_fatigue_comparison(result_path, num_tasks, beta, alpha, mu, lamda)
+	plot_taskload_comparison(result_path, num_tasks, alpha, beta, gamma)
+	plot_fatigue_comparison(result_path, num_tasks, alpha, beta, gamma)
 
-	# plot_performance(result_path, num_tasks, beta, alpha, mu, lamda)
+	plot_performance(result_path, num_tasks, alpha, beta, gamma)
