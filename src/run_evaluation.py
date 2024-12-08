@@ -28,6 +28,10 @@ class Evaluations(object):
 
         self.num_tasks_per_batch = args.num_tasks_per_batch
 
+        self.global_path = args.results_path + 'num_tasks '+str(args.num_tasks_per_batch)+'/alpha_tp '+str(args.alpha_tp)+'/beta_tp '+str(args.beta_tp)+'/gamma_tp '+str(args.gamma_tp)+'/' \
+        +'alpha_fp '+str(args.alpha_fp) +'/beta_fp ' +str(args.beta_fp) + '/gamma_fp '+str(args.gamma_fp) + '/'
+
+
         
     '''
     Function that computes the optimal workload using the adp solution
@@ -83,6 +87,8 @@ class Evaluations(object):
                 expected_future_cost += self.env.P[w_t_d][F_t,F_next]*V_bar[F_next]
 
             total_cost = cstar + expected_future_cost
+
+            #total_cost = cstar + V_bar[F_tp1]
             
             all_cost.append(total_cost)
             all_cstars.append(cstar)
@@ -111,9 +117,9 @@ class Evaluations(object):
         
         ut = Utils(self.args)
         
-        open_path  = self.args.results_path + 'num_tasks '+str(self.args.num_tasks_per_batch)+'/alpha '+str(self.args.alpha)+'/beta '+str(self.args.beta)+'/gamma '+str(self.args.gamma)+'/'
         
-        with open(open_path + 'V_func.pkl','rb') as file1:
+        
+        with open(self.global_path + 'V_func.pkl','rb') as file1:
             V_bar = pickle.load(file1)
         
 
@@ -242,7 +248,7 @@ class Evaluations(object):
 
              
 
-        path1 = self.args.results_path + 'num_tasks '+str(self.args.num_tasks_per_batch)+'/alpha '+str(self.args.alpha)+'/beta '+str(self.args.beta)+'/gamma '+str(self.args.gamma)+'/plot_analysis/cost_comparison/'
+        path1 = self.global_path+'cost_comparison/'
         if not os.path.exists(path1):
             with contextlib.suppress(FileExistsError):
                 os.makedirs(path1,exist_ok=True)
@@ -304,13 +310,11 @@ class Evaluations(object):
 
         ut = Utils(self.args)
 
-        open_path = self.args.results_path + 'num_tasks '+str(self.args.num_tasks_per_batch)+'/alpha '+str(self.args.alpha)+'/beta '+str(self.args.beta)+'/gamma '+str(self.args.gamma)+'/'
-
-        with open(open_path+'V_func.pkl','rb') as file:
+        
+        with open(self.global_path+'V_func.pkl','rb') as file:
             V_bar = pickle.load(file)
        
-        #V_bar = np.load(self.args.results_path + 'num_tasks '+str(self.args.num_tasks_per_batch)+'/alpha '+str(self.args.alpha)+'/beta '+str(self.args.beta)+'/gamma '+str(self.args.gamma)+'/V_bar.npy')
-
+        
 
         ## initial fatigue is for kesav 0
         F_k = 0
@@ -393,8 +397,7 @@ class Evaluations(object):
         
         
         
-        path_name = self.args.results_path + 'num_tasks '+str(self.args.num_tasks_per_batch)+'/alpha '+str(self.args.alpha)+'/beta '+str(self.args.beta)+'/gamma '+str(self.args.gamma)+'/plot_analysis/'
-
+        path_name = self.global_path+'/plot_analysis/'
         if not os.path.exists(path_name):
             with contextlib.suppress(FileExistsError):
                 os.makedirs(path_name,exist_ok=True)
@@ -452,7 +455,7 @@ class Evaluations(object):
         plt.xlabel('Time')
         plt.ylabel('Fatigue Level')
         plt.legend()
-        plt.savefig(path_name+'beta_'+str(self.args.beta)+'_fatigue.pdf')
+        plt.savefig(path_name+'fatigue_evolution_comparison.pdf')
 
         plt.clf()
         plt.close()
@@ -468,7 +471,7 @@ class Evaluations(object):
         plt.xlabel('Time')
         plt.ylabel('Workload level')
         plt.legend()
-        plt.savefig(path_name+'beta_'+str(self.args.beta)+'_workload.pdf')
+        plt.savefig(path_name+'taskload_evolution_comparison.pdf')
 
         plt.clf()
         plt.close()
