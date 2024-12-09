@@ -3,6 +3,7 @@ from utils import Utils
 from run_evaluation import Evaluations
 from envs.fatigue_model_1 import FatigueMDP
 from envs.fatigue_model_2 import FatigueMDP2
+from envs.fatigue_model_3 import FatigueMDP3
 from tqdm import tqdm
 import json
 import os
@@ -16,9 +17,9 @@ import contextlib
 function that computes the approximate dynamic programming algorithm
 
 Args:
-    T: The total number of time to perform the dynamic program
+    T (int): The total time horizon in integer
 
-    num_expectation_samples: The number of samples of automation observation vector to take for approximating the expectation --> input type integer
+    num_expectation_samples (int): The number of expectation samples of use to approximate the expectation with respect fo Y^a_{t+1}
 
     ut: a utility object from the class Utility
 '''
@@ -29,18 +30,24 @@ def approximate_dynamic_program(T, num_expectation_samples,ut,model_name):
     
     if model_name.lower()=='fatigue_model_1':
         env = FatigueMDP()
+        
+        fatigue_states = env.fatigue_states
 
-    elif model_name.lower()=='fatigue_model_2':
-        env = FatigueMDP2()
+    elif model_name.lower()=='fatigue_model_3':
+        env = FatigueMDP3()
+        
+        fatigue_states = env.fatigue_states
+    else:
+        raise ValueError("Invalid Fatigue Model Selected")
 
 
-    num_fatigue_states = env.num_fatigue_states
+    
 
     V_post = [{} for _ in range(T+1)]  # V_t^a(F_t^a)
     #V_post_kesav = [{} for _ in range(T+1)]
 
     # Terminal value
-    for F_T in range(num_fatigue_states):
+    for idx_F_T, F_T in enumerate(fatigue_states):
         
         expected_terminal_value = 0
 
@@ -56,7 +63,7 @@ def approximate_dynamic_program(T, num_expectation_samples,ut,model_name):
 
             expected_terminal_value += best_action_value/num_expectation_samples
             
-        V_post[T][F_T] = expected_terminal_value
+        V_post[T][idx_F_T] = expected_terminal_value
 
     ###############done #################################
 
@@ -64,10 +71,7 @@ def approximate_dynamic_program(T, num_expectation_samples,ut,model_name):
 
     for t in tqdm(range(T-1,-1,-1)):
 
-        for F_t_a in range(num_fatigue_states):
-
-          
-        
+        for idx_F_t, F_t in enumerate(fatigue_states):
 
             expected_value = 0
             
@@ -86,16 +90,37 @@ def approximate_dynamic_program(T, num_expectation_samples,ut,model_name):
 
                 for w_t in range(ut.num_tasks_per_batch):
 
-                    w_t_discrete = ut.discretize_taskload(w_t)
+                   
 
-                    F_next  = env.next_state(F_t_a,w_t_discrete)
+                    # F_next  = env.next_state(F_t,w_t_discrete)
 
-                    cstar, _, _ = ut.compute_cstar(F_t_a,w_t,batched_posterior_h0_t, batched_posterior_h1_t)
+                    cstar, _, _ = ut.compute_cstar(F_t,w_t,batched_posterior_h0_t, batched_posterior_h1_t)
                     
                     V_expectations_epsilon = 0
-                    for F_next in range(num_fatigue_states):
 
-                        V_expectations_epsilon+= env.P[w_t_discrete][F_t_a,F_next] * V_post[t+1][F_next]
+                    
+                    if model_name.lower()=='fatigue_model_1':
+
+                        w_t_discrete = ut.discretize_taskload(w_t)
+                
+                        for idx_F_next, F_next in enumerate(fatigue_states):
+                                
+                            # perform expectation with respect to the next state since fatigue is stochastic
+                            V_expectations_epsilon+= env.P[w_t_discrete][idx_F_t,idx_F_next] * V_post[t+1][idx_F_next]
+                    
+                    elif model_name.lower()=='fatigue_model_3':
+
+                        F_next, idx_F_next = env.next_state(F_t, w_t)
+                        V_expectations_epsilon = V_post[t+1][idx_F_next]
+                    
+                    else:
+                        raise ValueError("Invalid Fatigue Model Selected")
+                            
+                       
+                            
+                        
+                        
+                        
 
                     best_action_value = min(cstar + V_expectations_epsilon, best_action_value)
                 
@@ -108,7 +133,7 @@ def approximate_dynamic_program(T, num_expectation_samples,ut,model_name):
 
                 
                 
-            V_post[t][F_t_a]=expected_value
+            V_post[t][idx_F_t]=expected_value
 
             #V_post_kesav[t][F_t_a] = expected_value_kesav
 
@@ -130,11 +155,28 @@ def run_approximate_dynamic_program(args):
     
     num_tasks_per_batch = args.num_tasks_per_batch
    
+    model_name = args.fatigue_model
 
-    #error probability params for model_1
-    alpha = args.alpha
-    beta = args.beta
-    gamma = args.gamma
+    if model_name.lower()=='fatigue_model_1':
+        #error probability params for model_1
+        alpha_tp = args.alpha_tp
+        alpha_fp = args.alpha_fp
+        beta_tp = args.beta_tp
+        beta_fp = args.beta_fp
+        gamma_tp = args.gamma_tp
+        gamma_fp = args.gamma_fp
+
+
+        path_name = args.results_path + 'fatigue_model_1/num_tasks '+str(num_tasks_per_batch)+'/alpha_tp '+str(alpha_tp)+'/beta_tp '+str(beta_tp)+'/gamma_tp '+str(gamma_tp)+'/' \
+        +'alpha_fp '+str(alpha_fp) +'/beta_fp ' +str(beta_fp) + '/gamma_fp '+str(gamma_fp) + '/'
+    
+
+    elif model_name.lower()=='fatigue_model_3':
+
+        path_name = args.results_path + 'fatigue_model_3/num_tasks '+str(num_tasks_per_batch)+'/'
+    
+    else:
+        raise ValueError("Invalid Fatigue Model Selected")
 
     #ADP params
 
@@ -146,21 +188,6 @@ def run_approximate_dynamic_program(args):
     
     ut = Utils(args)
     
-    model_name = args.model_name
-
-    # if model_name.lower()=='fatigue_model_1':
-
-    #     env = FatigueMDP()
-    # elif model_name.lower()=='fatigue_model_2':
-    #     env = FatigueMDP2()
-    # else:
-    #     raise ValueError("Invalid fatigue model")
-    
-    
-    
-
-    path_name = args.results_path + 'num_tasks '+str(num_tasks_per_batch)+'/alpha '+str(alpha)+'/beta '+str(beta)+'/gamma '+str(gamma)+'/'
-
     if not os.path.exists(path_name):
         with contextlib.suppress(FileExistsError):
             os.makedirs(path_name, exist_ok=True)
@@ -181,18 +208,12 @@ def run_approximate_dynamic_program(args):
 
     V_final = V_func[0]
 
-   # V_final_k_pol = V_func_k_pol[0]
 
     with open(path_name + 'V_func.pkl','wb') as file:
         pickle.dump(V_func,file)
     np.save(path_name + "V_bar.npy", V_final)
 
-    # with open(path_name+'policy_func,pkl','wb') as file1:
-    #     pickle.dump(policy,file1)
-
-    # with open(path_name + 'V_func_k_pol.pkl','wb') as file1:
-    #     pickle.dump(V_func_k_pol,file1)
-    # np.save(path_name + "V_bar_k_pol.npy", V_final_k_pol)
+   
     
     
 
@@ -235,12 +256,20 @@ def main():
     parser.add_argument('--cfn', type=float, default=1.0, help='The cost associated with false negative rates.')
     parser.add_argument('--cm', type=float, default=0.0, help='The cost associated with deferrals.')
 
-    parser.add_argument('--fatigue_model', type=str, default='model_1',help='The fatigue model to use. Choices are ["model_1", "model_2"]')
+    parser.add_argument('--fatigue_model', type=str, default='fatigue_model_1',help='The fatigue model to use. Choices are ["fatigue_model_1", "fatigue_model_3"]')
     parser.add_argument('--results_path', type=str, default='results/', help='The name of the directory to save the results')
 
     parser.add_argument('--run_eval_only', type=bool, default=False)
     parser.add_argument('--num_eval_runs', type=int, default=500, help="Number of independent runs for monte carlo performance evaluation")
-    parser.add_argument('--model_name', type=str,default='fatigue_model_1',  help='The fatigue model to choose options are [fatigue_model_1, fatigue_model_2]')
+    # parser.add_argument('--fatigue_model', type=str,default='fatigue_model_1',  help='The fatigue model to choose options are [fatigue_model_1, fatigue_model_2]')
+    parser.add_argument('--alpha_tp', type=float, default=0.2, help='The value of alpha for Ptp in range [0,1]')
+    parser.add_argument('--beta_tp',type=float, default=0.1, help='Value of beta for Ptp in range [0,1]')
+    parser.add_argument('--gamma_tp', type=float, default=2.5, help='normalizing term for Ptp should be positive real number')
+
+    parser.add_argument('--alpha_fp', type=float, default=0.3, help='The value of alpha for Pfp in range [0,1]')
+    parser.add_argument('--beta_fp',type=float, default=0.1, help='Value of beta for Pfp in range [0,1]')
+    parser.add_argument('--gamma_fp', type=float, default=3, help='normalizing term for Pfp should be positive real number')
+    
     args = parser.parse_args()
 
     

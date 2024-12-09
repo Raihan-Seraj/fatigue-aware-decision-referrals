@@ -8,7 +8,7 @@ class FatigueMDP2():
 
     def __init__(self):
 
-        self.num_fatigue_states = 11
+        self.num_fatigue_states = 10
         self.num_actions = 21
         self.start_state = 0
         self.w_0  = 17

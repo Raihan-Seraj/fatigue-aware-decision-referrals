@@ -3,162 +3,324 @@ import pandas as pd
 import pickle 
 import matplotlib.pyplot as plt 
 import seaborn as sns 
+import argparse
 
 
 
 
-def create_performance_table(alphas,betas, gammas,num_tasks_per_batch, result_path):
-
-	result_path = result_path + 'num_tasks '+str(num_tasks_per_batch)+'/'
-
-	total_num_tasks=num_tasks_per_batch
-
-	round_decimal_places=3
-      
-	final_data = pd.DataFrame(columns=['Beta','Alpha','Expected Total Human Cost-ADP', ' Expected Total Human Cost-K','Expected Human Cost Per Taskload-ADP','Expected Human Cost Per Taskload-K',
-										'Expected Total Automation Cost-ADP','Expected Total Automation Cost-K', 'Expected Automation Cost Per Taskload-ADP', 'Expected Automation Cost Per Taskload-K',
-										'Expected Total Deferred Cost-ADP','Expected Total Deferred Cost-K',
-										'Expected Total Cost-ADP','Expected Total Cost-K', 'Expected Taskload of the Human-ADP','Expected Taskload of the Human-K'])
-
-
-
-	for alpha in alphas:
-
-		for beta in betas:
-
-			for gamma in gammas:
-
-				all_run_human_cost_adp_path = result_path + 'alpha '+str(alpha)+'/beta '+str(beta)+'/gamma '+str(gamma)+'/plot_analysis/cost_comparison/all_human_cost_adp.npy'
-
-				all_run_human_cost_k_path = result_path  + 'alpha '+str(alpha)+'/beta '+str(beta)+'/gamma '+str(gamma)+'/plot_analysis/cost_comparison/all_human_cost_k.npy'
-
-				all_run_automation_cost_adp_path = result_path + 'alpha '+str(alpha)+'/beta '+str(beta)+'/gamma '+str(gamma)+'/plot_analysis/cost_comparison/all_auto_cost_adp.npy'
-
-				all_run_automation_cost_k_path = result_path + 'alpha '+str(alpha)+'/beta '+str(beta)+'/gamma '+str(gamma)+'/plot_analysis/cost_comparison/all_auto_cost_k.npy'
-
-
-				all_run_deferred_cost_k_path = result_path + 'alpha '+str(alpha)+'/beta '+str(beta)+'/gamma '+str(gamma)+'/plot_analysis/cost_comparison/all_deferred_cost_k.npy'
-				all_run_deferred_cost_adp_path = result_path + 'alpha '+str(alpha)+'/beta '+str(beta)+'/gamma '+str(gamma)+'/plot_analysis/cost_comparison/all_deferred_cost_adp.npy'
-				
-				
-
-				try:
-					all_run_human_cost_adp = np.load(all_run_human_cost_adp_path)
-					all_run_human_cost_k = np.load(all_run_human_cost_k_path)
-
-					all_run_auto_cost_adp = np.load(all_run_automation_cost_adp_path)
-					all_run_auto_cost_k =  np.load(all_run_automation_cost_k_path)
-
-					all_run_deferred_cost_k = np.load(all_run_deferred_cost_k_path)
-					all_run_deferred_cost_adp = np.load(all_run_deferred_cost_adp_path)
-				except FileNotFoundError:
-
-					
-					print("File not found, for alpha "+str(alpha), ' beta '+str(beta))
-					#continue 
-					
-
-
-				# now loading the taskload 
-				all_run_human_tl_adp_path = result_path + 'alpha '+str(alpha)+'/beta '+str(beta)+'/gamma '+str(gamma)+'/plot_analysis/cost_comparison/all_human_wl_adp.pkl'
-
-				all_run_human_tl_k_path = result_path + 'alpha '+str(alpha)+'/beta '+str(beta)+'/gamma '+str(gamma)+'/plot_analysis/cost_comparison/all_human_wl_k.pkl'
-
-				
-				try:
-					with open(all_run_human_tl_adp_path,'rb') as file1:
-
-						all_run_human_wl_adp = pickle.load(file1)
-
-					with open(all_run_human_tl_k_path, 'rb') as file2:
-						
-						all_run_human_wl_k = pickle.load(file2)
-				
-				except FileNotFoundError:
-					print("File not found skipping to the next file")
-					#continue 
-
-				
-				human_cost_per_wl_per_run_adp = [all_run_human_cost_adp[i]/(sum(all_run_human_wl_adp['Run-'+str(i+1)])) for i in range(len(all_run_human_cost_adp))]
-
-				human_cost_per_wl_per_run_k = [all_run_human_cost_k[i]/(sum(all_run_human_wl_k['Run-'+str(i+1)])) for i in range(len(all_run_human_cost_k))]
-
-				automation_cost_per_wl_per_run_adp = [all_run_auto_cost_adp[i]/(sum(total_num_tasks-all_run_human_wl_adp['Run-'+str(i+1)])) for i in range(len(all_run_auto_cost_adp))]
-
-				automation_cost_per_wl_per_run_k = [all_run_auto_cost_k[i]/(sum(total_num_tasks-all_run_human_wl_k['Run-'+str(i+1)])) for i in range(len(all_run_auto_cost_k))]
-			
-				
-
-				expected_total_human_cost_adp = np.round(np.mean(all_run_human_cost_adp),round_decimal_places)
-				std_total_human_cost_adp = np.round(np.std(all_run_human_cost_adp),round_decimal_places)
-
-				expected_total_human_cost_k = np.round(np.mean(all_run_human_cost_k),round_decimal_places)
-				std_total_human_cost_k = np.round(np.std(all_run_human_cost_k),round_decimal_places)
-
-				expected_human_cost_per_wl_adp = np.round(np.mean(human_cost_per_wl_per_run_adp),round_decimal_places)
-				std_human_cost_per_wl_adp = np.round(np.std(human_cost_per_wl_per_run_adp),round_decimal_places)
-
-				expected_human_cost_per_wl_k = np.round(np.mean(human_cost_per_wl_per_run_k),round_decimal_places)
-				std_human_cost_per_wl_k = np.round(np.std(human_cost_per_wl_per_run_k),round_decimal_places)
-
-				##
-
-				expected_total_automation_cost_adp = np.round(np.mean(all_run_auto_cost_adp),round_decimal_places)
-				std_total_automation_cost_adp = np.round(np.std(all_run_auto_cost_adp),round_decimal_places)
-
-				expected_total_automation_cost_k = np.round(np.mean(all_run_auto_cost_k),round_decimal_places)
-				std_total_automation_cost_k = np.round(np.std(all_run_auto_cost_k),round_decimal_places)
-
-				expected_automation_cost_per_wl_adp = np.round(np.mean(automation_cost_per_wl_per_run_adp),round_decimal_places)
-				std_automation_cost_per_wl_adp = np.round(np.std(automation_cost_per_wl_per_run_adp),round_decimal_places)
-
-				expected_automation_cost_per_wl_k = np.round(np.mean(automation_cost_per_wl_per_run_k),round_decimal_places)
-				std_automation_cost_per_wl_k = np.round(np.std(automation_cost_per_wl_per_run_k),round_decimal_places)
-
-				expected_total_deferred_cost_k = np.round(np.mean(all_run_deferred_cost_k),round_decimal_places)
-				std_total_deferred_cost_k = np.round(np.std(all_run_deferred_cost_k),round_decimal_places)
-
-				expected_total_deferred_cost_adp = np.round(np.mean(all_run_deferred_cost_adp),round_decimal_places)
-				std_total_deferred_cost_adp = np.round(np.std(all_run_deferred_cost_adp),round_decimal_places)
-
-
-
-				expected_total_cost_adp = np.round(np.mean(all_run_human_cost_adp + all_run_auto_cost_adp+all_run_deferred_cost_adp),round_decimal_places)
-				std_total_cost_adp = np.round(np.std(all_run_human_cost_adp + all_run_auto_cost_adp+ all_run_deferred_cost_adp),round_decimal_places)
-			
-				expected_total_cost_k = np.round(np.mean(all_run_human_cost_k + all_run_auto_cost_k + all_run_deferred_cost_k),round_decimal_places)
-				std_total_cost_k = np.round(np.std(all_run_human_cost_k + all_run_auto_cost_k + all_run_deferred_cost_k),round_decimal_places)
-
-				expected_taskload_human_adp = np.round(np.mean([np.mean(all_run_human_wl_adp['Run-'+str(i+1)]) for i in range(len(all_run_human_wl_adp))]),round_decimal_places)
-				std_taskload_human_adp = np.round(np.std([sum(all_run_human_wl_adp['Run-'+str(i+1)]) for i in range(len(all_run_human_wl_adp))]),round_decimal_places)
-				expected_taskload_human_k = np.round(np.mean([np.mean(all_run_human_wl_k['Run-'+str(i+1)]) for i in range(len(all_run_human_wl_k))]),round_decimal_places)
-				std_taskload_human_k = np.round(np.std([np.mean(all_run_human_wl_k['Run-'+str(i+1)]) for i in range(len(all_run_human_wl_k))]),round_decimal_places)
-
-
-				
-
-				new_row  = pd.DataFrame([[str(beta), str(alpha), 
-								str(expected_total_human_cost_adp)+'$pm$'+str(std_total_human_cost_adp),
-								str(expected_total_human_cost_k)+'$pm$'+str(std_total_human_cost_k),
-								str(expected_human_cost_per_wl_adp)+'$pm$'+str(std_human_cost_per_wl_adp),
-								str(expected_human_cost_per_wl_k)+'$pm$'+str(std_human_cost_per_wl_k),
-								str(expected_total_automation_cost_adp)+'$pm$'+str(std_total_automation_cost_adp),
-								str(expected_total_automation_cost_k)+'$pm$'+str(std_total_automation_cost_k),
-								str(expected_automation_cost_per_wl_adp)+'$pm$'+str(std_automation_cost_per_wl_adp),
-								str(expected_automation_cost_per_wl_k)+'$pm$'+str(std_automation_cost_per_wl_k),
-								str(expected_total_deferred_cost_adp)+'$pm$'+str(std_total_deferred_cost_adp),
-								str(expected_total_deferred_cost_k)+'$pm$'+str(std_total_deferred_cost_k),
-								str(expected_total_cost_adp)+'$pm$'+str(std_total_cost_adp),
-								str(expected_total_cost_k)+'$pm$'+str(std_total_cost_k),
-								str(expected_taskload_human_adp)+'$pm$'+str(std_taskload_human_adp),
-								str(expected_taskload_human_k)+'$pm$'+str(std_taskload_human_k)]],columns=final_data.columns)
-				
-				
-				final_data = pd.concat([final_data,new_row],ignore_index=True)
-				
-				
+def create_performance_table(alphas_tp,betas_tp, gammas_tp,alphas_fp,betas_fp, gammas_fp,num_tasks_per_batch, result_path, fatigue_model):
 	
-	final_data.to_csv(result_path+ '/refined_performance_table.csv')
+	if fatigue_model.lower()=='fatigue_model_1':
+		result_path = result_path + 'num_tasks '+str(num_tasks_per_batch)+'/'
+
+		total_num_tasks=num_tasks_per_batch
+
+		round_decimal_places=5
+		
+		final_data = pd.DataFrame(columns=['Alpha_a','Beta_a','Gamma_a','Alpha_b','Beta_b','Gamma_b','Expected Total Human Cost-ADP', ' Expected Total Human Cost-K','Expected Human Cost Per Taskload-ADP','Expected Human Cost Per Taskload-K',
+											'Expected Total Automation Cost-ADP','Expected Total Automation Cost-K', 'Expected Automation Cost Per Taskload-ADP', 'Expected Automation Cost Per Taskload-K',
+											'Expected Total Deferred Cost-ADP','Expected Total Deferred Cost-K',
+											'Expected Total Cost-ADP','Expected Total Cost-K', 'Expected Taskload of the Human-ADP','Expected Taskload of the Human-K'])
+
+
+		
+		for alpha_tp in alphas_tp:
+
+			for beta_tp in betas_tp:
+
+				for gamma_tp in gammas_tp:
+
+
+					for alpha_fp in alphas_fp:
+
+						for beta_fp in betas_fp:
+
+							for gamma_fp in gammas_fp:
+
+								all_run_human_cost_adp_path = result_path + 'alpha_tp '+str(alpha_tp)+'/beta_tp '+str(beta_tp)+'/gamma_tp '+str(gamma_tp)+'/alpha_fp '+str(alpha_fp)+'/beta_fp '+str(beta_fp)+'/gamma_fp '+str(gamma_fp)+'/cost_comparison/all_human_cost_adp.npy'
+
+								all_run_human_cost_k_path = result_path  + 'alpha_tp '+str(alpha_tp)+'/beta_tp '+str(beta_tp)+'/gamma_tp '+str(gamma_tp)+'/alpha_fp '+str(alpha_fp)+'/beta_fp '+str(beta_fp)+'/gamma_fp '+str(gamma_fp)+'/cost_comparison/all_human_cost_k.npy'
+
+								all_run_automation_cost_adp_path = result_path + 'alpha_tp '+str(alpha_tp)+'/beta_tp '+str(beta_tp)+'/gamma_tp '+str(gamma_tp)+'/alpha_fp '+str(alpha_fp)+'/beta_fp '+str(beta_fp)+'/gamma_fp '+str(gamma_fp)+'/cost_comparison/all_auto_cost_adp.npy'
+
+								all_run_automation_cost_k_path = result_path + 'alpha_tp '+str(alpha_tp)+'/beta_tp '+str(beta_tp)+'/gamma_tp '+str(gamma_tp)+'/alpha_fp '+str(alpha_fp)+'/beta_fp '+str(beta_fp)+'/gamma_fp '+str(gamma_fp)+'/cost_comparison/all_auto_cost_k.npy'
+
+
+								all_run_deferred_cost_k_path = result_path + 'alpha_tp '+str(alpha_tp)+'/beta_tp '+str(beta_tp)+'/gamma_tp '+str(gamma_tp)+'/alpha_fp '+str(alpha_fp)+'/beta_fp '+str(beta_fp)+'/gamma_fp '+str(gamma_fp)+'/cost_comparison/all_deferred_cost_k.npy'
+								all_run_deferred_cost_adp_path = result_path + 'alpha_tp '+str(alpha_tp)+'/beta_tp '+str(beta_tp)+'/gamma_tp '+str(gamma_tp)+'/alpha_fp '+str(alpha_fp)+'/beta_fp '+str(beta_fp)+'/gamma_fp '+str(gamma_fp)+'/cost_comparison/all_deferred_cost_adp.npy'
+								
+								
+
+								try:
+									all_run_human_cost_adp = np.load(all_run_human_cost_adp_path)
+									all_run_human_cost_k = np.load(all_run_human_cost_k_path)
+
+									all_run_auto_cost_adp = np.load(all_run_automation_cost_adp_path)
+									all_run_auto_cost_k =  np.load(all_run_automation_cost_k_path)
+
+									all_run_deferred_cost_k = np.load(all_run_deferred_cost_k_path)
+									all_run_deferred_cost_adp = np.load(all_run_deferred_cost_adp_path)
+								except FileNotFoundError:
+
+									
+									print("File not found")
+									#continue 
+									
+
+
+								# now loading the taskload 
+								all_run_human_tl_adp_path = result_path +  'alpha_tp '+str(alpha_tp)+'/beta_tp '+str(beta_tp)+'/gamma_tp '+str(gamma_tp)+'/alpha_fp '+str(alpha_fp)+'/beta_fp '+str(beta_fp)+'/gamma_fp '+str(gamma_fp)+'/cost_comparison/all_human_wl_adp.pkl'
+
+								all_run_human_tl_k_path = result_path +  'alpha_tp '+str(alpha_tp)+'/beta_tp '+str(beta_tp)+'/gamma_tp '+str(gamma_tp)+'/alpha_fp '+str(alpha_fp)+'/beta_fp '+str(beta_fp)+'/gamma_fp '+str(gamma_fp)+'/cost_comparison/all_human_wl_k.pkl'
+
+								
+								try:
+									with open(all_run_human_tl_adp_path,'rb') as file1:
+
+										all_run_human_wl_adp = pickle.load(file1)
+
+									with open(all_run_human_tl_k_path, 'rb') as file2:
+										
+										all_run_human_wl_k = pickle.load(file2)
+								
+								except FileNotFoundError:
+									print("File not found skipping to the next file")
+									#continue 
+
+							
+								human_cost_per_wl_per_run_adp = [all_run_human_cost_adp[i]/(sum(all_run_human_wl_adp['Run-'+str(i+1)])) for i in range(len(all_run_human_cost_adp))]
+
+								human_cost_per_wl_per_run_k = [all_run_human_cost_k[i]/(sum(all_run_human_wl_k['Run-'+str(i+1)])) for i in range(len(all_run_human_cost_k))]
+
+								automation_cost_per_wl_per_run_adp = [all_run_auto_cost_adp[i]/(sum(total_num_tasks-all_run_human_wl_adp['Run-'+str(i+1)])) for i in range(len(all_run_auto_cost_adp))]
+
+								automation_cost_per_wl_per_run_k = [all_run_auto_cost_k[i]/(sum(total_num_tasks-all_run_human_wl_k['Run-'+str(i+1)])) for i in range(len(all_run_auto_cost_k))]
+							
+								
+
+								expected_total_human_cost_adp = np.round(np.mean(all_run_human_cost_adp),round_decimal_places)
+								std_total_human_cost_adp = np.round(np.std(all_run_human_cost_adp),round_decimal_places)
+
+								expected_total_human_cost_k = np.round(np.mean(all_run_human_cost_k),round_decimal_places)
+								std_total_human_cost_k = np.round(np.std(all_run_human_cost_k),round_decimal_places)
+
+								expected_human_cost_per_wl_adp = np.round(np.mean(human_cost_per_wl_per_run_adp),round_decimal_places)
+								std_human_cost_per_wl_adp = np.round(np.std(human_cost_per_wl_per_run_adp),round_decimal_places)
+
+								expected_human_cost_per_wl_k = np.round(np.mean(human_cost_per_wl_per_run_k),round_decimal_places)
+								std_human_cost_per_wl_k = np.round(np.std(human_cost_per_wl_per_run_k),round_decimal_places)
+
+								##
+
+								expected_total_automation_cost_adp = np.round(np.mean(all_run_auto_cost_adp),round_decimal_places)
+								std_total_automation_cost_adp = np.round(np.std(all_run_auto_cost_adp),round_decimal_places)
+
+								expected_total_automation_cost_k = np.round(np.mean(all_run_auto_cost_k),round_decimal_places)
+								std_total_automation_cost_k = np.round(np.std(all_run_auto_cost_k),round_decimal_places)
+
+								expected_automation_cost_per_wl_adp = np.round(np.mean(automation_cost_per_wl_per_run_adp),round_decimal_places)
+								std_automation_cost_per_wl_adp = np.round(np.std(automation_cost_per_wl_per_run_adp),round_decimal_places)
+
+								expected_automation_cost_per_wl_k = np.round(np.mean(automation_cost_per_wl_per_run_k),round_decimal_places)
+								std_automation_cost_per_wl_k = np.round(np.std(automation_cost_per_wl_per_run_k),round_decimal_places)
+
+								expected_total_deferred_cost_k = np.round(np.mean(all_run_deferred_cost_k),round_decimal_places)
+								std_total_deferred_cost_k = np.round(np.std(all_run_deferred_cost_k),round_decimal_places)
+
+								expected_total_deferred_cost_adp = np.round(np.mean(all_run_deferred_cost_adp),round_decimal_places)
+								std_total_deferred_cost_adp = np.round(np.std(all_run_deferred_cost_adp),round_decimal_places)
+
+
+
+								expected_total_cost_adp = np.round(np.mean(all_run_human_cost_adp + all_run_auto_cost_adp+all_run_deferred_cost_adp),round_decimal_places)
+								std_total_cost_adp = np.round(np.std(all_run_human_cost_adp + all_run_auto_cost_adp+ all_run_deferred_cost_adp),round_decimal_places)
+							
+								expected_total_cost_k = np.round(np.mean(all_run_human_cost_k + all_run_auto_cost_k + all_run_deferred_cost_k),round_decimal_places)
+								std_total_cost_k = np.round(np.std(all_run_human_cost_k + all_run_auto_cost_k + all_run_deferred_cost_k),round_decimal_places)
+
+								expected_taskload_human_adp = np.round(np.mean([np.mean(all_run_human_wl_adp['Run-'+str(i+1)]) for i in range(len(all_run_human_wl_adp))]),round_decimal_places)
+								std_taskload_human_adp = np.round(np.std([sum(all_run_human_wl_adp['Run-'+str(i+1)]) for i in range(len(all_run_human_wl_adp))]),round_decimal_places)
+								expected_taskload_human_k = np.round(np.mean([np.mean(all_run_human_wl_k['Run-'+str(i+1)]) for i in range(len(all_run_human_wl_k))]),round_decimal_places)
+								std_taskload_human_k = np.round(np.std([np.mean(all_run_human_wl_k['Run-'+str(i+1)]) for i in range(len(all_run_human_wl_k))]),round_decimal_places)
+
+
+								
+
+								new_row  = pd.DataFrame([[str(alpha_tp), str(beta_tp), str(gamma_tp), str(alpha_fp), str(beta_fp), str(gamma_fp),
+												str(expected_total_human_cost_adp)+'$pm$'+str(std_total_human_cost_adp),
+												str(expected_total_human_cost_k)+'$pm$'+str(std_total_human_cost_k),
+												str(expected_human_cost_per_wl_adp)+'$pm$'+str(std_human_cost_per_wl_adp),
+												str(expected_human_cost_per_wl_k)+'$pm$'+str(std_human_cost_per_wl_k),
+												str(expected_total_automation_cost_adp)+'$pm$'+str(std_total_automation_cost_adp),
+												str(expected_total_automation_cost_k)+'$pm$'+str(std_total_automation_cost_k),
+												str(expected_automation_cost_per_wl_adp)+'$pm$'+str(std_automation_cost_per_wl_adp),
+												str(expected_automation_cost_per_wl_k)+'$pm$'+str(std_automation_cost_per_wl_k),
+												str(expected_total_deferred_cost_adp)+'$pm$'+str(std_total_deferred_cost_adp),
+												str(expected_total_deferred_cost_k)+'$pm$'+str(std_total_deferred_cost_k),
+												str(expected_total_cost_adp)+'$pm$'+str(std_total_cost_adp),
+												str(expected_total_cost_k)+'$pm$'+str(std_total_cost_k),
+												str(expected_taskload_human_adp)+'$pm$'+str(std_taskload_human_adp),
+												str(expected_taskload_human_k)+'$pm$'+str(std_taskload_human_k)]],columns=final_data.columns)
+								
+								
+								final_data = pd.concat([final_data,new_row],ignore_index=True)
+								
+					
+		
+		final_data.to_csv(result_path+ '/refined_performance_table.csv')
+
+	elif fatigue_model.lower()=='fatigue_model_3':
+
+
+		result_path = result_path + 'fatigue_model_3/num_tasks '+str(num_tasks_per_batch)+'/'
+
+		total_num_tasks=num_tasks_per_batch
+
+		round_decimal_places=5
+	
+		final_data = pd.DataFrame(columns=['Expected Total Human Cost-ADP', ' Expected Total Human Cost-K','Expected Human Cost Per Taskload-ADP','Expected Human Cost Per Taskload-K',
+											'Expected Total Automation Cost-ADP','Expected Total Automation Cost-K', 'Expected Automation Cost Per Taskload-ADP', 'Expected Automation Cost Per Taskload-K',
+											'Expected Total Deferred Cost-ADP','Expected Total Deferred Cost-K',
+											'Expected Total Cost-ADP','Expected Total Cost-K', 'Expected Taskload of the Human-ADP','Expected Taskload of the Human-K'])
+
+
+
+
+		all_run_human_cost_adp_path = result_path+'cost_comparison/all_human_cost_adp.npy'
+
+		all_run_human_cost_k_path = result_path +'cost_comparison/all_human_cost_k.npy'
+
+		all_run_automation_cost_adp_path = result_path+'cost_comparison/all_auto_cost_adp.npy'
+
+		all_run_automation_cost_k_path = result_path+'cost_comparison/all_auto_cost_k.npy'
+
+
+		all_run_deferred_cost_k_path = result_path+'cost_comparison/all_deferred_cost_k.npy'
+		all_run_deferred_cost_adp_path = result_path+'cost_comparison/all_deferred_cost_adp.npy'
+		
+		
+
+		try:
+			all_run_human_cost_adp = np.load(all_run_human_cost_adp_path)
+			all_run_human_cost_k = np.load(all_run_human_cost_k_path)
+
+			all_run_auto_cost_adp = np.load(all_run_automation_cost_adp_path)
+			all_run_auto_cost_k =  np.load(all_run_automation_cost_k_path)
+
+			all_run_deferred_cost_k = np.load(all_run_deferred_cost_k_path)
+			all_run_deferred_cost_adp = np.load(all_run_deferred_cost_adp_path)
+		except FileNotFoundError:
+
+			
+			print("File not found")
+			#continue 
+			
+
+
+		# now loading the taskload 
+		all_run_human_tl_adp_path = result_path + 'cost_comparison/all_human_wl_adp.pkl'
+
+		all_run_human_tl_k_path = result_path + 'cost_comparison/all_human_wl_k.pkl'
+
+		
+		try:
+			with open(all_run_human_tl_adp_path,'rb') as file1:
+
+				all_run_human_wl_adp = pickle.load(file1)
+
+			with open(all_run_human_tl_k_path, 'rb') as file2:
+				
+				all_run_human_wl_k = pickle.load(file2)
+		
+		except FileNotFoundError:
+			print("File not found skipping to the next file")
+			#continue 
+
+
+		human_cost_per_wl_per_run_adp = [all_run_human_cost_adp[i]/(sum(all_run_human_wl_adp['Run-'+str(i+1)])) for i in range(len(all_run_human_cost_adp))]
+
+		human_cost_per_wl_per_run_k = [all_run_human_cost_k[i]/(sum(all_run_human_wl_k['Run-'+str(i+1)])) for i in range(len(all_run_human_cost_k))]
+
+		automation_cost_per_wl_per_run_adp = [all_run_auto_cost_adp[i]/(sum(total_num_tasks-all_run_human_wl_adp['Run-'+str(i+1)])) for i in range(len(all_run_auto_cost_adp))]
+
+		automation_cost_per_wl_per_run_k = [all_run_auto_cost_k[i]/(sum(total_num_tasks-all_run_human_wl_k['Run-'+str(i+1)])) for i in range(len(all_run_auto_cost_k))]
+
+		
+
+		expected_total_human_cost_adp = np.round(np.mean(all_run_human_cost_adp),round_decimal_places)
+		std_total_human_cost_adp = np.round(np.std(all_run_human_cost_adp),round_decimal_places)
+
+		expected_total_human_cost_k = np.round(np.mean(all_run_human_cost_k),round_decimal_places)
+		std_total_human_cost_k = np.round(np.std(all_run_human_cost_k),round_decimal_places)
+
+		expected_human_cost_per_wl_adp = np.round(np.mean(human_cost_per_wl_per_run_adp),round_decimal_places)
+		std_human_cost_per_wl_adp = np.round(np.std(human_cost_per_wl_per_run_adp),round_decimal_places)
+
+		expected_human_cost_per_wl_k = np.round(np.mean(human_cost_per_wl_per_run_k),round_decimal_places)
+		std_human_cost_per_wl_k = np.round(np.std(human_cost_per_wl_per_run_k),round_decimal_places)
+
+		##
+
+		expected_total_automation_cost_adp = np.round(np.mean(all_run_auto_cost_adp),round_decimal_places)
+		std_total_automation_cost_adp = np.round(np.std(all_run_auto_cost_adp),round_decimal_places)
+
+		expected_total_automation_cost_k = np.round(np.mean(all_run_auto_cost_k),round_decimal_places)
+		std_total_automation_cost_k = np.round(np.std(all_run_auto_cost_k),round_decimal_places)
+
+		expected_automation_cost_per_wl_adp = np.round(np.mean(automation_cost_per_wl_per_run_adp),round_decimal_places)
+		std_automation_cost_per_wl_adp = np.round(np.std(automation_cost_per_wl_per_run_adp),round_decimal_places)
+
+		expected_automation_cost_per_wl_k = np.round(np.mean(automation_cost_per_wl_per_run_k),round_decimal_places)
+		std_automation_cost_per_wl_k = np.round(np.std(automation_cost_per_wl_per_run_k),round_decimal_places)
+
+		expected_total_deferred_cost_k = np.round(np.mean(all_run_deferred_cost_k),round_decimal_places)
+		std_total_deferred_cost_k = np.round(np.std(all_run_deferred_cost_k),round_decimal_places)
+
+		expected_total_deferred_cost_adp = np.round(np.mean(all_run_deferred_cost_adp),round_decimal_places)
+		std_total_deferred_cost_adp = np.round(np.std(all_run_deferred_cost_adp),round_decimal_places)
+
+
+
+		expected_total_cost_adp = np.round(np.mean(all_run_human_cost_adp + all_run_auto_cost_adp+all_run_deferred_cost_adp),round_decimal_places)
+		std_total_cost_adp = np.round(np.std(all_run_human_cost_adp + all_run_auto_cost_adp+ all_run_deferred_cost_adp),round_decimal_places)
+
+		expected_total_cost_k = np.round(np.mean(all_run_human_cost_k + all_run_auto_cost_k + all_run_deferred_cost_k),round_decimal_places)
+		std_total_cost_k = np.round(np.std(all_run_human_cost_k + all_run_auto_cost_k + all_run_deferred_cost_k),round_decimal_places)
+
+		expected_taskload_human_adp = np.round(np.mean([np.mean(all_run_human_wl_adp['Run-'+str(i+1)]) for i in range(len(all_run_human_wl_adp))]),round_decimal_places)
+		std_taskload_human_adp = np.round(np.std([sum(all_run_human_wl_adp['Run-'+str(i+1)]) for i in range(len(all_run_human_wl_adp))]),round_decimal_places)
+		expected_taskload_human_k = np.round(np.mean([np.mean(all_run_human_wl_k['Run-'+str(i+1)]) for i in range(len(all_run_human_wl_k))]),round_decimal_places)
+		std_taskload_human_k = np.round(np.std([np.mean(all_run_human_wl_k['Run-'+str(i+1)]) for i in range(len(all_run_human_wl_k))]),round_decimal_places)
+
+
+		
+
+		new_row  = pd.DataFrame([[
+						str(expected_total_human_cost_adp)+'$pm$'+str(std_total_human_cost_adp),
+						str(expected_total_human_cost_k)+'$pm$'+str(std_total_human_cost_k),
+						str(expected_human_cost_per_wl_adp)+'$pm$'+str(std_human_cost_per_wl_adp),
+						str(expected_human_cost_per_wl_k)+'$pm$'+str(std_human_cost_per_wl_k),
+						str(expected_total_automation_cost_adp)+'$pm$'+str(std_total_automation_cost_adp),
+						str(expected_total_automation_cost_k)+'$pm$'+str(std_total_automation_cost_k),
+						str(expected_automation_cost_per_wl_adp)+'$pm$'+str(std_automation_cost_per_wl_adp),
+						str(expected_automation_cost_per_wl_k)+'$pm$'+str(std_automation_cost_per_wl_k),
+						str(expected_total_deferred_cost_adp)+'$pm$'+str(std_total_deferred_cost_adp),
+						str(expected_total_deferred_cost_k)+'$pm$'+str(std_total_deferred_cost_k),
+						str(expected_total_cost_adp)+'$pm$'+str(std_total_cost_adp),
+						str(expected_total_cost_k)+'$pm$'+str(std_total_cost_k),
+						str(expected_taskload_human_adp)+'$pm$'+str(std_taskload_human_adp),
+						str(expected_taskload_human_k)+'$pm$'+str(std_taskload_human_k)]],columns=final_data.columns)
+		
+	
+		final_data = pd.concat([final_data,new_row],ignore_index=True)
+		
+
+	
+		final_data.to_csv(result_path+ '/refined_performance_table.csv')
+
+	
+
+		
 	
 	return
 
@@ -197,7 +359,7 @@ def plot_human_perf_vs_taskload(beta, result_path):
 
 
 
-def create_complete_performance_table():
+def create_complete_performance_table(fatigue_model):
 
 	result_path = 'results/'
 	num_tasks_per_batch=20
@@ -209,20 +371,32 @@ def create_complete_performance_table():
 	# mus = [0.1, 0.003, 0.05, 0.07]
 
 	# lamdas = [0.1,0.03,0.07, 0.007]
+	if fatigue_model.lower()=='fatigue_model_1':
+		alphas_tp = [0.2]
+		alphas_fp = [0.3]
+		betas_tp = [0.1]
+		betas_fp = [0.1]
+		gammas_tp = [2.5]
+		gammas_fp =[3]
 
-	alphas = [0.1]
-	betas = [0.1]
-	gammas = [0.1]
+	elif fatigue_model.lower()=='fatigue_model_3':
+		
+		alphas_tp = None
+		alphas_fp = None
+		betas_tp = None
+		betas_fp = None
+		gammas_tp = None
+		gammas_fp =None
 
 	
-	create_performance_table(alphas,betas,gammas, num_tasks_per_batch, result_path)
+	create_performance_table(alphas_tp,betas_tp,gammas_tp,alphas_fp, betas_fp, gammas_fp, num_tasks_per_batch, result_path,fatigue_model)
 
 	return
 
 
-def plot_taskload_comparison(result_path, num_tasks, alpha,beta,gamma):
+def plot_taskload_comparison(result_path, num_tasks, alpha_tp,alpha_fp,beta_tp,beta_fp, gamma_tp, gamma_fp, stime=20):
 
-	path = result_path + 'num_tasks '+str(num_tasks)+'/alpha '+str(alpha)+'/beta '+str(beta)+'/gamma '+str(gamma)+'/plot_analysis/'
+	path = result_path + 'num_tasks '+str(num_tasks)+'/alpha_tp '+str(alpha_tp)+'/beta_tp '+str(beta_tp)+'/gamma_tp '+str(gamma_tp)+'/alpha_fp '+str(alpha_fp)+'/beta_fp '+str(beta_fp)+'/gamma_fp '+str(gamma_fp)+'/plot_analysis/'
 
 	adp_path = path + 'all_taskload_adp.pkl'
 
@@ -251,7 +425,7 @@ def plot_taskload_comparison(result_path, num_tasks, alpha,beta,gamma):
 	q3_k = np.percentile(data_k, q=75, axis=0)
 
 
-	simulation_time = np.arange(1, 21)
+	simulation_time = np.arange(1, stime+1)
 
 	
 	plt.step(simulation_time, median_workload_adp, label='Approximate Dynamic Program', color='blue', where='mid')
@@ -270,11 +444,11 @@ def plot_taskload_comparison(result_path, num_tasks, alpha,beta,gamma):
 	plt.xlabel('Time Steps')
 	plt.ylabel('Taskload')
 
-	tick_positions = [i+1 for i in range(20)]
+	#tick_positions = [i+1 for i in range(100)]
 
-	tick_labels = [str(i+1) for i in range(20) ]
+	#tick_labels = [str(i+1) for i in range(100) ]
 
-	plt.xticks(tick_positions,tick_labels)
+	#plt.xticks(tick_positions,tick_labels)
 
 	plt.legend()
 	plt.savefig(path+'Median-Taskload-Plot-Comparison.pdf')
@@ -283,9 +457,9 @@ def plot_taskload_comparison(result_path, num_tasks, alpha,beta,gamma):
 
 
 
-def plot_fatigue_comparison(result_path, num_tasks,alpha,beta,gamma):
+def plot_fatigue_comparison(result_path, num_tasks,alpha_tp,alpha_fp, beta_tp, beta_fp, gamma_tp, gamma_fp,stime=20):
 
-	path = result_path + 'num_tasks '+str(num_tasks)+'/alpha '+str(alpha)+'/beta '+str(beta)+'/gamma '+str(gamma)+'/plot_analysis/'
+	path = result_path + 'num_tasks '+str(num_tasks)+'/alpha_tp '+str(alpha_tp)+'/beta_tp '+str(beta_tp)+'/gamma_tp '+str(gamma_tp)+'/alpha_fp '+str(alpha_fp)+'/beta_fp '+str(beta_fp)+'/gamma_fp '+str(gamma_fp)+'/plot_analysis/'
 
 	adp_path = path + 'all_fatigue_adp.pkl'
 
@@ -314,7 +488,7 @@ def plot_fatigue_comparison(result_path, num_tasks,alpha,beta,gamma):
 	q3_k = np.percentile(data_k, q=75, axis=0)
 
 
-	simulation_time = np.arange(1, 21)
+	simulation_time = np.arange(1,stime+1)
 
 	
 	plt.step(simulation_time, median_fatigue_adp, label='Approximate Dynamic Program', color='blue', where='mid')
@@ -336,11 +510,11 @@ def plot_fatigue_comparison(result_path, num_tasks,alpha,beta,gamma):
 	plt.xlabel('Time Steps')
 	plt.ylabel('Fatigue')
 
-	tick_positions = [i+1 for i in range(20)]
+	#tick_positions = [i+1 for i in range(100)]
 
-	tick_labels = [str(i+1) for i in range(20) ]
+	#tick_labels = [str(i+1) for i in range(100) ]
 
-	plt.xticks(tick_positions,tick_labels)
+	#plt.xticks(tick_positions,tick_labels)
 
 
 	plt.legend()
@@ -349,9 +523,9 @@ def plot_fatigue_comparison(result_path, num_tasks,alpha,beta,gamma):
 	plt.clf()
 
 
-def plot_performance(result_path, num_tasks, alpha,beta,gamma):
+def plot_performance(result_path, num_tasks, alpha_tp, alpha_fp, beta_tp, beta_fp,gamma_tp, gamma_fp):
 
-	path=result_path + 'num_tasks '+str(num_tasks)+'/alpha '+str(alpha)+'/beta '+str(beta)+'/gamma '+str(gamma)+'/plot_analysis/cost_comparison/'
+	path = result_path + 'num_tasks '+str(num_tasks)+'/alpha_tp '+str(alpha_tp)+'/beta_tp '+str(beta_tp)+'/gamma_tp '+str(gamma_tp)+'/alpha_fp '+str(alpha_fp)+'/beta_fp '+str(beta_fp)+'/gamma_fp '+str(gamma_fp)+'/cost_comparison/'
 
 	auto_cost_adp_path = path +'all_auto_cost_adp.npy'
 
@@ -402,22 +576,26 @@ def plot_performance(result_path, num_tasks, alpha,beta,gamma):
 
 if __name__=='__main__':
 
-	#create_complete_performance_table()
+	fatigue_model = 'fatigue_model_3'
+	create_complete_performance_table(fatigue_model)
 
 
       
-	result_path = 'results/'
+	# result_path = 'results/'
 	
-	num_tasks=20
+	# num_tasks=4
+
+	# horizon=10
 	
-	beta=0.1
-	
-	alpha=0.1
-	
-	gamma = 0.1
+	# alpha_tp = 0.2
+	# alpha_fp = 0.3
+	# beta_tp = 0.1
+	# beta_fp = 0.1
+	# gamma_tp = 2.5
+	# gamma_fp = 3
 
 
-	plot_taskload_comparison(result_path, num_tasks, alpha, beta, gamma)
-	plot_fatigue_comparison(result_path, num_tasks, alpha, beta, gamma)
+	# plot_taskload_comparison(result_path, num_tasks, alpha_tp,alpha_fp, beta_tp, beta_fp, gamma_tp, gamma_fp, stime=horizon)
+	# plot_fatigue_comparison(result_path, num_tasks, alpha_tp,alpha_fp, beta_tp, beta_fp, gamma_tp, gamma_fp, stime=horizon)
 
-	plot_performance(result_path, num_tasks, alpha, beta, gamma)
+	# plot_performance(result_path, num_tasks, alpha_tp,alpha_fp, beta_tp, beta_fp, gamma_tp, gamma_fp)

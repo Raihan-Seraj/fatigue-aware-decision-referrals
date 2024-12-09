@@ -7,6 +7,7 @@ import matplotlib
 import pickle
 from envs.fatigue_model_1 import FatigueMDP
 from envs.fatigue_model_2 import FatigueMDP2
+from envs.fatigue_model_3 import FatigueMDP3
 import contextlib
 matplotlib.use('Agg')
 
@@ -16,21 +17,33 @@ class Evaluations(object):
 
         self.args = args
         
-        self.model_name = self.args.model_name
+        self.model_name = self.args.fatigue_model
 
         if self.model_name.lower()=='fatigue_model_1':
-
             self.env = FatigueMDP()
+            self.fatigue_states = self.env.fatigue_states
+            self.global_path = args.results_path + 'fatigue_model_1/num_tasks '+str(args.num_tasks_per_batch)+'/alpha_tp '+str(args.alpha_tp)+'/beta_tp '+str(args.beta_tp)+'/gamma_tp '+str(args.gamma_tp)+'/' \
+            +'alpha_fp '+str(args.alpha_fp) +'/beta_fp ' +str(args.beta_fp) + '/gamma_fp '+str(args.gamma_fp) + '/'
+
+
         elif self.model_name.lower()=='fatigue_model_2':
             self.env = FatigueMDP2()
+            self.fatigue_states = self.env.fatigue_states 
+            self.global_path = ''
+        
+        elif self.model_name.lower()=='fatigue_model_3':
+            self.env = FatigueMDP3()
+            self.fatigue_states = self.env.fatigue_states
+            self.global_path = args.results_path + 'fatigue_model_3/num_tasks '+str(args.num_tasks_per_batch)+'/'
+            
+            self.fatigue_states = self.env.fatigue_states
+
         else:
             raise ValueError("Invalid fatigue model name")
 
         self.num_tasks_per_batch = args.num_tasks_per_batch
 
-        self.global_path = args.results_path + 'num_tasks '+str(args.num_tasks_per_batch)+'/alpha_tp '+str(args.alpha_tp)+'/beta_tp '+str(args.beta_tp)+'/gamma_tp '+str(args.gamma_tp)+'/' \
-        +'alpha_fp '+str(args.alpha_fp) +'/beta_fp ' +str(args.beta_fp) + '/gamma_fp '+str(args.gamma_fp) + '/'
-
+        
 
         
     '''
@@ -40,6 +53,7 @@ class Evaluations(object):
         batched_posterior_h0,
         batched_posterior_h1,
         F_t,
+        idx_F_t,
         V_bar,
         ut
     ):
@@ -59,11 +73,11 @@ class Evaluations(object):
 
                 w_t_discrete = ut.discretize_taskload(w_t)
 
-                F_tp1 = self.env.next_state(F_t,w_t_discrete)
+                F_next, idx_F_next = self.env.next_state(F_t,w_t_discrete)
             
-            elif self.model_name.lower()=='fatigue_model_2':
+            elif self.model_name.lower()=='fatigue_model_3':
 
-                _, F_tp1 = self.env.next_state(F_t,w_t)
+                F_next, idx_F_next = self.env.next_state(F_t,w_t)
             
             else:
 
@@ -71,7 +85,7 @@ class Evaluations(object):
             
             
 
-            f_t_evol.append(F_tp1)
+            f_t_evol.append(F_next)
             
             cstar, deferred_indices, gbar = ut.compute_cstar(
                 F_t,
@@ -82,13 +96,24 @@ class Evaluations(object):
             
             ## fixme
             expected_future_cost=0
-            for F_next in range(self.env.num_fatigue_states):
-                w_t_d = ut.discretize_taskload(w_t)
-                expected_future_cost += self.env.P[w_t_d][F_t,F_next]*V_bar[F_next]
 
+            if self.model_name.lower()=='fatigue_model_1':
+                for idx_F_next, F_next in enumerate(self.fatigue_states):
+                    w_t_d = ut.discretize_taskload(w_t)
+                    expected_future_cost += self.env.P[w_t_d][idx_F_t,idx_F_next]*V_bar[idx_F_next]
+
+            
+            elif self.model_name.lower()=='fatigue_model_3':
+
+                expected_future_cost = V_bar[idx_F_next]
+
+            else:
+                raise ValueError("Invalid Fatigue Model Selected")
+
+            
             total_cost = cstar + expected_future_cost
 
-            #total_cost = cstar + V_bar[F_tp1]
+            
             
             all_cost.append(total_cost)
             all_cstars.append(cstar)
@@ -98,7 +123,7 @@ class Evaluations(object):
         
         min_idx = np.argmin(all_cost)
 
-        #min_cost = all_cost[min_idx]
+        
 
         wl_adp = min_idx
         
@@ -150,10 +175,10 @@ class Evaluations(object):
         
             ## initial fatigue is for kesav 0
             F_k = 0
-
+            idx_F_k=0
             #initial fatigue for adp
             F_adp = 0
-
+            idx_F_adp = 0
 
             auto_cost_adp = 0
             human_cost_adp = 0
@@ -178,7 +203,7 @@ class Evaluations(object):
 
                 wl_k, deferred_idx_k = ut.compute_kesav_policy(F_k,batched_posterior_h0, batched_posterior_h1)
 
-                wl_adp, deferred_idx_adp = self.compute_adp_solution(batched_posterior_h0,batched_posterior_h1,F_adp, V_bar[t],ut)
+                wl_adp, deferred_idx_adp = self.compute_adp_solution(batched_posterior_h0,batched_posterior_h1,F_adp,idx_F_adp, V_bar[t],ut)
 
                 
                 
@@ -209,20 +234,21 @@ class Evaluations(object):
 
                     #get the next fatigue state for kesav
                     wl_k_discrete = ut.discretize_taskload(wl_k)
-                    F_k = self.env.next_state(F_k, wl_k_discrete)
+                    F_k, idx_F_k = self.env.next_state(F_k, wl_k_discrete)
 
                     #get the next fatigue state for adp
                     wl_adp_discrete = ut.discretize_taskload(wl_adp)
-                    F_adp = self.env.next_state(F_adp,wl_adp_discrete)
+                    F_adp, idx_F_adp = self.env.next_state(F_adp,wl_adp_discrete)
                 
-                elif self.model_name.lower()=='fatigue_model_2':
+                elif self.model_name.lower() in ['fatigue_model_2', 'fatigue_model_3']:
 
-                    F_k,_ = self.env.next_state(F_k, wl_k)
-                    F_adp,_ = self.env.next_state(F_adp,wl_adp)
-                
+                    F_k, idx_F_k = self.env.next_state(F_k, wl_k)
+                    F_adp, idx_F_adp = self.env.next_state(F_adp,wl_adp)
+                 
                 else:
-                    raise ValueError("Invalid fatigue model")
-
+                    raise ValueError("Invalid Fatigue Model Selected")
+                
+                    
                 
 
             all_human_wl_adp['Run-'+str(run+1)]=hum_wl_adp
@@ -318,10 +344,10 @@ class Evaluations(object):
 
         ## initial fatigue is for kesav 0
         F_k = 0
-
+        idx_F_k =0
         #initial fatigue for adp
         F_adp = 0
-
+        idx_F_adp = 0
        
 
         fatigue_evolution_kesav = []
@@ -344,24 +370,21 @@ class Evaluations(object):
 
             wl_k, deferred_idx_k = ut.compute_kesav_policy(F_k,batched_posterior_h0, batched_posterior_h1)
 
-            wl_adp, deferred_idx_adp = self.compute_adp_solution(batched_posterior_h0,batched_posterior_h1,F_adp, V_bar[t],ut)
+            wl_adp, deferred_idx_adp = self.compute_adp_solution(batched_posterior_h0,batched_posterior_h1,F_adp,idx_F_adp, V_bar[t],ut)
 
 
-            if self.model_name.lower()=='fatigue_model_1':
-
-                #get the next fatigue state for kesav
+            if self.model_name.lower()== 'fatigue_model_1':
                 wl_k_discrete = ut.discretize_taskload(wl_k)
-                F_k =self.env.next_state(F_k, wl_k_discrete)
-
-                #get the next fatigue state for adp
                 wl_adp_discrete = ut.discretize_taskload(wl_adp)
-                F_adp = self.env.next_state(F_adp,wl_adp_discrete)
-            
-            elif self.model_name.lower()=='fatigue_model_2':
 
-                F_k,_ = self.env.next_state(F_k, wl_k)
-                F_adp,_ = self.env.next_state(F_adp,wl_adp)
-            
+                F_k, idx_F_k = self.env.next_state(F_k, wl_k_discrete)
+
+                F_adp, idx_F_adp = self.env.next_state(F_adp, wl_adp_discrete)
+
+            elif self.model_name.lower() in ['fatigue_model_2', 'fatigue_model_3']:
+
+                F_k, idx_F_k = self.env.next_state(F_k, wl_k)
+                F_adp, idx_F_adp = self.env.next_state(F_adp, wl_adp)
             else:
                 raise ValueError("Invalid name for fatigue model")
 
@@ -416,7 +439,7 @@ class Evaluations(object):
         with open(path_name+'all_taskload_adp.pkl','wb') as file4:
             pickle.dump(all_taskload_adp,file4)
 
-        sample_path_choose = 3
+     
         
        #median_fatigue_k =  all_fatigue_kesav[sample_path_choose]
         median_fatigue_k=np.median(all_fatigue_kesav,axis=0)
