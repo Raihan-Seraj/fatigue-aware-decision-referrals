@@ -76,10 +76,23 @@ class Utils(object):
     
     def discretize_taskload(self,w_t):
 
-        discretized_data = np.digitize(w_t, self.num_bins)
+        if w_t>=0 and w_t<=5:
+
+            return 0
+        elif w_t>5 and w_t<=10:
+            return 1
+        
+        elif w_t> 10 and w_t<=15:
+            return 2
+        
+        elif w_t >15 and w_t <=20:
+            return 3
+        else:
+            raise ValueError("invalid workload ")
+        # discretized_data = np.digitize(w_t, self.num_bins)
 
         # subtracting 1 since python is zero indexed
-        return discretized_data - 1
+        #return discretized_data - 1
 
 
 
@@ -147,7 +160,7 @@ class Utils(object):
             w_t_d = self.discretize_taskload(w_t)
     
             false_pos_func = (self.alpha_fp * F_t + self.beta_fp * w_t_d)/self.gamma_fp
-            # res = false_pos_dict[F_t][w_t_d]
+            #false_pos_func = (np.log(1+F_t) + np.log(1+w_t_d))/(np.log(5) + np.log(4)) + 0.1* np.exp(-0.5 * (F_t +w_t_d))
 
 
             res = false_pos_func
@@ -168,11 +181,13 @@ class Utils(object):
         
 
         if self.model_name.lower()=='fatigue_model_1':
-        
-
+            
+            
             w_t_d = self.discretize_taskload(w_t)
             true_pos_func = 1 - (self.alpha_tp*F_t + self.beta_tp*w_t_d)/self.gamma_tp
 
+            #true_pos_func = 1-(np.log(1+F_t)+ np.log(1+w_t_d))/(np.log(5)+np.log(4))-0.1*np.exp(-0.5*(F_t+w_t_d))
+            
             res_1 = true_pos_func
             
             #res_1 = 1-F_t/5 - 0.2 *w_t/20

@@ -99,8 +99,10 @@ class Evaluations(object):
 
             if self.model_name.lower()=='fatigue_model_1':
                 for idx_F_next, F_next in enumerate(self.fatigue_states):
-                    w_t_d = ut.discretize_taskload(w_t)
-                    expected_future_cost += self.env.P[w_t_d][idx_F_t,idx_F_next]*V_bar[idx_F_next]
+                    #w_t_d = ut.discretize_taskload(w_t)
+                    expected_future_cost += self.env.P[w_t_discrete][idx_F_t,idx_F_next]*V_bar[idx_F_next]
+
+                #expected_future_cost = V_bar[idx_F_next]
 
             
             elif self.model_name.lower()=='fatigue_model_3':

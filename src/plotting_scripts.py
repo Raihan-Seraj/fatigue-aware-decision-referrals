@@ -11,7 +11,7 @@ import argparse
 def create_performance_table(alphas_tp,betas_tp, gammas_tp,alphas_fp,betas_fp, gammas_fp,num_tasks_per_batch, result_path, fatigue_model):
 	
 	if fatigue_model.lower()=='fatigue_model_1':
-		result_path = result_path + 'num_tasks '+str(num_tasks_per_batch)+'/'
+		result_path = result_path + fatigue_model+'/num_tasks '+str(num_tasks_per_batch)+'/'
 
 		total_num_tasks=num_tasks_per_batch
 
@@ -37,20 +37,23 @@ def create_performance_table(alphas_tp,betas_tp, gammas_tp,alphas_fp,betas_fp, g
 
 							for gamma_fp in gammas_fp:
 
-								all_run_human_cost_adp_path = result_path + 'alpha_tp '+str(alpha_tp)+'/beta_tp '+str(beta_tp)+'/gamma_tp '+str(gamma_tp)+'/alpha_fp '+str(alpha_fp)+'/beta_fp '+str(beta_fp)+'/gamma_fp '+str(gamma_fp)+'/cost_comparison/all_human_cost_adp.npy'
+								global_path_cost = result_path +'alpha_tp '+str(alpha_tp)+'/beta_tp '+str(beta_tp)+'/gamma_tp '+str(gamma_tp)+'/alpha_fp '+str(alpha_fp)+'/beta_fp '+str(beta_fp)+'/gamma_fp '+str(gamma_fp)+'/cost_comparison/'
+								global_path_plot = result_path + 'alpha_tp '+str(alpha_tp)+'/beta_tp '+str(beta_tp)+'/gamma_tp '+str(gamma_tp)+'/alpha_fp '+str(alpha_fp)+'/beta_fp '+str(beta_fp)+'/gamma_fp '+str(gamma_fp)+'/plot_analysis/'
 
-								all_run_human_cost_k_path = result_path  + 'alpha_tp '+str(alpha_tp)+'/beta_tp '+str(beta_tp)+'/gamma_tp '+str(gamma_tp)+'/alpha_fp '+str(alpha_fp)+'/beta_fp '+str(beta_fp)+'/gamma_fp '+str(gamma_fp)+'/cost_comparison/all_human_cost_k.npy'
+								all_run_human_cost_adp_path = global_path_cost +'all_human_cost_adp.npy'
+								
+								all_run_human_cost_k_path = global_path_cost+'all_human_cost_k.npy'
 
-								all_run_automation_cost_adp_path = result_path + 'alpha_tp '+str(alpha_tp)+'/beta_tp '+str(beta_tp)+'/gamma_tp '+str(gamma_tp)+'/alpha_fp '+str(alpha_fp)+'/beta_fp '+str(beta_fp)+'/gamma_fp '+str(gamma_fp)+'/cost_comparison/all_auto_cost_adp.npy'
+								all_run_automation_cost_adp_path = global_path_cost+'all_auto_cost_adp.npy'
 
-								all_run_automation_cost_k_path = result_path + 'alpha_tp '+str(alpha_tp)+'/beta_tp '+str(beta_tp)+'/gamma_tp '+str(gamma_tp)+'/alpha_fp '+str(alpha_fp)+'/beta_fp '+str(beta_fp)+'/gamma_fp '+str(gamma_fp)+'/cost_comparison/all_auto_cost_k.npy'
+								all_run_automation_cost_k_path = global_path_cost+'all_auto_cost_k.npy'
 
 
-								all_run_deferred_cost_k_path = result_path + 'alpha_tp '+str(alpha_tp)+'/beta_tp '+str(beta_tp)+'/gamma_tp '+str(gamma_tp)+'/alpha_fp '+str(alpha_fp)+'/beta_fp '+str(beta_fp)+'/gamma_fp '+str(gamma_fp)+'/cost_comparison/all_deferred_cost_k.npy'
-								all_run_deferred_cost_adp_path = result_path + 'alpha_tp '+str(alpha_tp)+'/beta_tp '+str(beta_tp)+'/gamma_tp '+str(gamma_tp)+'/alpha_fp '+str(alpha_fp)+'/beta_fp '+str(beta_fp)+'/gamma_fp '+str(gamma_fp)+'/cost_comparison/all_deferred_cost_adp.npy'
+								all_run_deferred_cost_k_path = global_path_cost+'all_deferred_cost_k.npy'
+								all_run_deferred_cost_adp_path = global_path_cost+'all_deferred_cost_adp.npy'
 								
 								
-
+								
 								try:
 									all_run_human_cost_adp = np.load(all_run_human_cost_adp_path)
 									all_run_human_cost_k = np.load(all_run_human_cost_k_path)
@@ -69,9 +72,9 @@ def create_performance_table(alphas_tp,betas_tp, gammas_tp,alphas_fp,betas_fp, g
 
 
 								# now loading the taskload 
-								all_run_human_tl_adp_path = result_path +  'alpha_tp '+str(alpha_tp)+'/beta_tp '+str(beta_tp)+'/gamma_tp '+str(gamma_tp)+'/alpha_fp '+str(alpha_fp)+'/beta_fp '+str(beta_fp)+'/gamma_fp '+str(gamma_fp)+'/cost_comparison/all_human_wl_adp.pkl'
+								all_run_human_tl_adp_path = global_path_cost+'all_human_wl_adp.pkl'
 
-								all_run_human_tl_k_path = result_path +  'alpha_tp '+str(alpha_tp)+'/beta_tp '+str(beta_tp)+'/gamma_tp '+str(gamma_tp)+'/alpha_fp '+str(alpha_fp)+'/beta_fp '+str(beta_fp)+'/gamma_fp '+str(gamma_fp)+'/cost_comparison/all_human_wl_k.pkl'
+								all_run_human_tl_k_path = global_path_cost+'all_human_wl_k.pkl'
 
 								
 								try:
@@ -576,7 +579,7 @@ def plot_performance(result_path, num_tasks, alpha_tp, alpha_fp, beta_tp, beta_f
 
 if __name__=='__main__':
 
-	fatigue_model = 'fatigue_model_3'
+	fatigue_model = 'fatigue_model_1'
 	create_complete_performance_table(fatigue_model)
 
 
