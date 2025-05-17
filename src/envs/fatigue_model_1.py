@@ -12,27 +12,6 @@ class FatigueMDP():
         self.num_actions = 4
         self.fatigue_states = [0,1,2,3]
         
-        #self.P = self.construct_transition_matrix(self.num_fatigue_states,self.num_actions)
-
-        # self.P = {0: np.array([[0.8, 0.2, 0, 0],
-        #                         [0.3, 0.5, 0.2, 0,],
-        #                         [0, 0.3, 0.5, 0.2],
-        #                         [0, 0, 0 , 1]
-        #                         ]),
-                                
-        #          1: np.array([  [0.4, 0.6, 0 , 0],
-        #                         [0, 0.4, 0.6, 0],
-        #                         [0, 0, 0.4, 0.6],
-        #                         [0, 0, 0, 1]
-        #                         ]),
-                                
-        #          2: np.array([[0, 0.3, 0.7, 0],
-        #                       [0, 0, 0.3, 0.7],
-        #                       [0, 0, 0.2,    0.8],
-        #                       [0, 0, 0,    1],
-        #                     ])
-                            
-        #                     }
 
 
         self.P = {0: np.array([[0.8, 0.2, 0, 0],

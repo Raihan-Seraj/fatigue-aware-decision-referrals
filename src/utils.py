@@ -115,7 +115,7 @@ class Utils(object):
         batched_obs = []
         batched_posterior_h0 = []
         batched_posterior_h1 = []
-
+        ground_truth = []
         for i in range(self.num_tasks_per_batch):
 
             task_state = np.random.choice([self.H0, self.H1], p=self.prior)
@@ -139,8 +139,10 @@ class Utils(object):
 
             batched_posterior_h0.append(posterior_h0)
             batched_posterior_h1.append(posterior_h1)
+            ground_truth.append(task_state)
+            
 
-        return batched_obs, batched_posterior_h0, batched_posterior_h1
+        return (batched_obs,ground_truth), batched_posterior_h0, batched_posterior_h1
     
 
     #########################################################################################################################
@@ -156,7 +158,7 @@ class Utils(object):
             #                     4:{0:0.9, 1:0.95, 2: 0.99}}
             w_t_d = self.discretize_taskload(w_t)
     
-            false_pos_func = (self.alpha_fp * F_t + self.beta_fp * w_t_d)/self.gamma_fp
+            false_pos_func = min((self.alpha_fp * F_t + self.beta_fp * w_t_d)/self.gamma_fp,1)
             #false_pos_func = (np.log(1+F_t) + np.log(1+w_t_d))/(np.log(5) + np.log(4)) + 0.1* np.exp(-0.5 * (F_t +w_t_d))
 
 
@@ -181,7 +183,7 @@ class Utils(object):
             
             
             w_t_d = self.discretize_taskload(w_t)
-            true_pos_func = 1 - (self.alpha_tp*F_t + self.beta_tp*w_t_d)/self.gamma_tp
+            true_pos_func = max(1 - (self.alpha_tp*F_t + self.beta_tp*w_t_d)/self.gamma_tp,0)
 
             #true_pos_func = 1-(np.log(1+F_t)+ np.log(1+w_t_d))/(np.log(5)+np.log(4))-0.1*np.exp(-0.5*(F_t+w_t_d))
             
@@ -326,6 +328,64 @@ class Utils(object):
         #total_per_step_cost = auto_cost_per_batch + deferred_cost + human_cost_per_batch
 
         return auto_cost_per_batch, human_cost_per_batch, deferred_cost
+
+    ###########################################################################################################################
+
+    def compute_per_step_missclassification(self,F_t, ground_truth, batched_posterior_h1, deferred_task_indices):
+        
+        # get the total indices
+        total_indices = list(range(self.num_tasks_per_batch))
+        
+        # get the auto_indices
+        auto_indices = list(set(total_indices)-set(deferred_task_indices))
+
+        # the human task indices is just the deferred task_indices.
+        human_indices = deferred_task_indices
+        
+        #automation misclassification per batch
+        auto_misclassification_per_batch = 0
+        #compute auto misclassification
+        declare_hyp = {self.H0: 0, self.H1: 1}
+
+        for auto_idx in auto_indices:
+            
+            auto_decision =  np.argmin([
+                self.ctn + (self.cfn - self.ctn) * batched_posterior_h1[auto_idx],
+                self.cfp + (self.ctp - self.cfp) * batched_posterior_h1[auto_idx]
+            ]
+            )
+
+            auto_decision = declare_hyp[auto_decision]
+
+            if ground_truth[auto_idx]!=auto_decision:
+
+                auto_misclassification_per_batch+=1
+        
+        #threshold
+        
+        taskload = len(human_indices)
+
+        Phtp = self.Phtp(F_t, taskload)
+        Phfp = self.Phtp(F_t, taskload)
+
+        for hum_idx in human_indices:
+
+            hum_obs = ground_truth[hum_idx]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
     #####################################################################################################################################

@@ -4,6 +4,7 @@ import pickle
 import matplotlib.pyplot as plt 
 import seaborn as sns 
 import argparse
+import os
 
 plt.rcParams["figure.figsize"] = (6.4, 5.3)
 plt.rc('text', usetex=True)
@@ -419,7 +420,7 @@ def plot_taskload_comparison(result_path, num_tasks, alpha_tp,alpha_fp,beta_tp,b
 
 
 		
-		plt.step(simulation_time, median_workload_k, label='Algorithm in [15]', color='black', where='mid')
+		plt.step(simulation_time, median_workload_k, label='Algorithm in [3]', color='black', where='mid')
 
 
 		plt.fill_between(simulation_time, q1_k, q3_k, step='mid', alpha=0.2, color='black')
@@ -465,18 +466,19 @@ def plot_taskload_comparison(result_path, num_tasks, alpha_tp,alpha_fp,beta_tp,b
 		simulation_time = np.arange(1, stime+1)
 
 		
-		plt.step(simulation_time, mean_workload_adp, label='Approximate Dynamic Program', color='blue', where='mid')
+		plt.step(simulation_time, mean_workload_adp, label='Approximate Dynamic Program', color='black', where='mid',linestyle='--')
 
 		
-		plt.fill_between(simulation_time, lower_adp, upper_adp, step='mid', alpha=0.1, color='blue')
-
+		fill=plt.fill_between(simulation_time, lower_adp, upper_adp, step='mid', alpha=0.3, color='gray',edgecolor='k')
+		fill.set_hatch('..')
 
 		
-		plt.step(simulation_time, mean_workload_k, label='Algorithm in [15]', color='black', where='mid')
+		plt.step(simulation_time, mean_workload_k, label='Algorithm in [3]', color='black', where='mid')
 
 
-		plt.fill_between(simulation_time, lower_k, upper_k, step='mid', alpha=0.1, color='black')
+		fill2=plt.fill_between(simulation_time, lower_k, upper_k, step='mid', alpha=0.3, color='gray', edgecolor='k')
 
+		fill2.set_hatch('//')
 		plt.grid(True)
 		plt.xlabel('Time Horizon T',fontsize=16)
 		plt.ylabel('Taskload',fontsize=16)
@@ -553,7 +555,7 @@ def plot_fatigue_comparison(result_path, num_tasks,alpha_tp,alpha_fp, beta_tp, b
 
 
 		
-		plt.step(simulation_time, median_fatigue_k, label='Algorithm in [15]', color='black', where='mid')
+		plt.step(simulation_time, median_fatigue_k, label='Algorithm in [3]', color='black', where='mid')
 
 
 		plt.fill_between(simulation_time, q1_k, q3_k, step='mid', alpha=0.2, color='black')
@@ -601,17 +603,20 @@ def plot_fatigue_comparison(result_path, num_tasks,alpha_tp,alpha_fp, beta_tp, b
 		simulation_time = np.arange(1,stime+1)
 
 		
-		plt.step(simulation_time, mean_fatigue_adp, label='Approximate Dynamic Program', color='blue', where='mid')
+		plt.step(simulation_time, mean_fatigue_adp, label='Approximate Dynamic Program', color='black', where='mid',linestyle='--')
 
 		
-		plt.fill_between(simulation_time, lower_adp, upper_adp, step='mid', alpha=0.1, color='blue')
+		fill=plt.fill_between(simulation_time, lower_adp, upper_adp, step='mid', alpha=0.3, color='gray',edgecolor='k')
+
+		fill.set_hatch('..')
 
 
 		
-		plt.step(simulation_time, mean_fatigue_k, label='Algorithm in [15]', color='black', where='mid')
+		plt.step(simulation_time, mean_fatigue_k, label='Algorithm in [3]', color='black', where='mid')
 
 
-		plt.fill_between(simulation_time, lower_k, upper_k, step='mid', alpha=0.1, color='black')
+		fill2=plt.fill_between(simulation_time, lower_k, upper_k, step='mid', alpha=0.3, color='gray',edgecolor='k')
+		fill2.set_hatch('//')
 
 
 
@@ -669,39 +674,73 @@ def plot_performance(result_path, num_tasks, alpha_tp, alpha_fp, beta_tp, beta_f
 	total_cost_k = auto_cost_k + human_cost_k
 
 
-	all_arrays = {'AutoCost-ADP':auto_cost_adp, 'AutoCost in [15]':auto_cost_k, 'HumCost-ADP':human_cost_adp, 'HumCost in [15]':human_cost_k, 'TotalCost-ADP':total_cost_adp, 'TotalCost in [15]':total_cost_k
+	all_arrays = {'AutoCost-ADP':auto_cost_adp, 'AutoCost in [3]':auto_cost_k, 'HumCost-ADP':human_cost_adp, 'HumCost in [3]':human_cost_k, 'TotalCost-ADP':total_cost_adp, 'TotalCost in [3]':total_cost_k
 			   
 			   }
 
-	df = pd.DataFrame(all_arrays,columns=['AutoCost-ADP','AutoCost in [15]', 'HumCost-ADP','HumCost in [15]','TotalCost-ADP','TotalCost in [15]'])
+	df = pd.DataFrame(all_arrays,columns=['AutoCost-ADP','AutoCost in [3]', 'HumCost-ADP','HumCost in [3]','TotalCost-ADP','TotalCost in [3]'])
 	
-	df_tc= df[['TotalCost-ADP', 'TotalCost in [15]']].melt(var_name='Category', value_name='Costs')
+	df_tc= df[['TotalCost-ADP', 'TotalCost in [3]']].melt(var_name='Category', value_name='Costs')
 
-	df_hc= df[['HumCost-ADP', 'HumCost in [15]']].melt(var_name='Category', value_name='Costs')
+	df_hc= df[['HumCost-ADP', 'HumCost in [3]']].melt(var_name='Category', value_name='Costs')
 
-	df_ac= df[['AutoCost-ADP', 'AutoCost in [15]']].melt(var_name='Category', value_name='Costs')
+	df_ac= df[['AutoCost-ADP', 'AutoCost in [3]']].melt(var_name='Category', value_name='Costs')
 	
 	
 	clr = sns.color_palette("hls", 8)
-
+	# Set default linewidths for boxes and medians
+	plt.rcParams['boxplot.boxprops.linewidth'] = 2.0
+	plt.rcParams['boxplot.medianprops.linewidth'] = 2.0
+	plt.rcParams['boxplot.flierprops.linewidth'] = 2.0
+	plt.rcParams['boxplot.whiskerprops.linewidth'] = 2.0
+	plt.rcParams['boxplot.capprops.linewidth'] = 2.0
 	figs, axes = plt.subplots(1,3,figsize=(15,5))
 	# Create the boxplots for each type of cost
-	sns.boxplot(x='Category', y='Costs', hue='Category', data=df_ac, ax=axes[0],flierprops={"marker": "x"})
-	axes[0].tick_params(axis='both', labelsize=13)  # Set tick label size for first plot
+	# Create the boxplots with custom hatching patterns
+	sns.boxplot(x='Category', y='Costs', data=df_ac, ax=axes[0], flierprops={"marker": "x"})
+	# Set all box colors to gray
+	#for box in axes[0].patches + axes[1].patches + axes[2].patches:
+		
+	for i, box in enumerate(axes[0].patches):
+		if i ==0:  # First category
+			box.set_hatch('..')
+			box.set_facecolor('blue')
+		else:  # Second category 
+			box.set_hatch('//')
+			box.set_facecolor('red')
+	axes[0].tick_params(axis='both', labelsize=13)
 
-	sns.boxplot(x='Category', y='Costs', hue='Category', data=df_hc, ax=axes[1],flierprops={"marker": "x"})
-	axes[1].tick_params(axis='both', labelsize=13)  # Set tick label size for second plot
+	sns.boxplot(x='Category', y='Costs', data=df_hc, ax=axes[1], flierprops={"marker": "x"}) 
+	
+	for i, box in enumerate(axes[1].patches):
+		if i==0:  # First category
+			box.set_hatch('..')
+			box.set_facecolor('blue')
+		else:  # Second category
+			box.set_hatch('//')
+			box.set_facecolor('red')
+	axes[1].tick_params(axis='both', labelsize=13)
 
-	sns.boxplot(x='Category', y='Costs', hue='Category', data=df_tc, ax=axes[2],flierprops={"marker": "x"})
-	axes[2].tick_params(axis='both', labelsize=13)  # Set tick label size for third plot
-	# sns.boxplot(x='Category', y='Costs',hue='Category',data=df_ac, ax=axes[0])
+	sns.boxplot(x='Category', y='Costs', data=df_tc, ax=axes[2], flierprops={"marker": "x"})
 	
-	# sns.boxplot(x='Category', y='Costs',hue='Category',data=df_hc, ax=axes[1])
-	#   # Set major tick label size
-	# sns.boxplot(x='Category', y='Costs',hue='Category',data=df_tc, ax=axes[2])
+		
+	for i, box in enumerate(axes[2].patches):
+		if i==0:  # First category
+			box.set_hatch('..')
+			box.set_facecolor('blue')
+		else:  # Second category
+			box.set_hatch('//')
+			box.set_facecolor('red')
+	axes[2].tick_params(axis='both', labelsize=13)
+	# sns.boxplot(x='Category', y='Costs', hue='Category', data=df_ac, ax=axes[0],flierprops={"marker": "x"})
+	# axes[0].tick_params(axis='both', labelsize=13)  # Set tick label size for first plot
+
+	# sns.boxplot(x='Category', y='Costs', hue='Category', data=df_hc, ax=axes[1],flierprops={"marker": "x"})
+	# axes[1].tick_params(axis='both', labelsize=13)  # Set tick label size for second plot
+
+	# sns.boxplot(x='Category', y='Costs', hue='Category', data=df_tc, ax=axes[2],flierprops={"marker": "x"})
+	# axes[2].tick_params(axis='both', labelsize=13)  # Set tick label size for third plot
 	
-	# plt.tick_params(axis='both', labelsize=14)  # Set major tick label size
-	#plt.tick_params(axis='both', which='minor', labelsize=16)  # Set minor tick label size (if applicable)
 
 	plt.savefig(path+'BoxPlot-Cost-Comparison.pdf')
 	plt.clf()
@@ -748,13 +787,19 @@ def compare_cum_cost(result_path, num_tasks, alpha_tp, alpha_fp, beta_tp, beta_f
 	running_cost_k = np.cumsum(mean_cum_cost_k)
 	running_cost_adp = np.cumsum(mean_cum_cost_adp)
 
-	plt.plot(np.arange(len(running_cost_k)),running_cost_k, label='Algorithm in [15]', color='black')
-	plt.fill_between(np.arange(len(running_cost_k)), running_cost_k-running_std_k, running_cost_k+running_std_k, alpha=0.2, color='black')
-
+	plt.rcParams['lines.linewidth'] = 3.0
+	plt.rcParams['grid.alpha'] = 0.3
+	
+	plt.plot(np.arange(len(running_cost_k)),running_cost_k, label='Algorithm in [3]', color='red',linestyle='dotted')
+	fill=plt.fill_between(np.arange(len(running_cost_k)), running_cost_k-running_std_k, running_cost_k+running_std_k, alpha=0.3, color='red',edgecolor='red')
+	plt.rcParams['hatch.linewidth'] = 2.0
+	plt.rcParams['hatch.color'] = 'black'
+	fill.set_hatch('////')
 	plt.xlabel('Time Horizon T', fontsize=16)
 	plt.ylabel('Mean Cumulative Cost', fontsize=16)
-	plt.plot(np.arange(len(running_cost_adp)),running_cost_adp, label='Approximate Dynamic Program', color='blue')
-	plt.fill_between(np.arange(len(running_cost_adp)), running_cost_adp-running_std_adp, running_cost_adp+running_std_adp, alpha=0.2, color='blue')
+	plt.plot(np.arange(len(running_cost_adp)),running_cost_adp, label='Approximate Dynamic Program', color='blue',linestyle='-.')
+	fill2=plt.fill_between(np.arange(len(running_cost_adp)), running_cost_adp-running_std_adp, running_cost_adp+running_std_adp, alpha=0.3, color='blue', edgecolor='blue')
+	fill2.set_hatch('..')
 	plt.legend(fontsize=16)
 
 	tick_positions = [i for i in range(10)]
@@ -773,6 +818,51 @@ def compare_cum_cost(result_path, num_tasks, alpha_tp, alpha_fp, beta_tp, beta_f
 	
 	return
 
+
+
+def plot_single_run(run_number, initial_fatigue_state):
+
+	result_path = os.path.join('results_single_run', 'run_'+str(run_number),initial_fatigue_state)
+	
+	fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+	
+	# Plot taskload comparison
+	
+	with open(os.path.join(result_path,'fatigue_evolve_adp.pkl') , 'rb') as f1:
+		data_adp = pickle.load(f1)
+	with open(os.path.join(result_path,'fatigue_evolve_k.pkl'), 'rb') as f2:
+		data_k = pickle.load(f2)
+		
+	stime = 10
+	sim_time = np.arange(1, stime+1)
+	plt.rcParams['lines.linewidth'] = 3.0
+	plt.rcParams['grid.alpha'] = 0.3
+	ax1.step(sim_time, data_adp[:stime], label='ADP', color='blue', linestyle='-.', where='mid')
+	ax1.step(sim_time, data_k[:stime], label='Algorithm in [3]', color='red', where='mid',linestyle='dotted')
+	ax1.set_xlabel('Time Horizon T', fontsize=16)
+	ax1.set_ylabel('Fatigue', fontsize=16)
+	ax1.grid(True)
+	ax1.legend(fontsize=14)
+	ax1.tick_params(labelsize=14)
+	
+	# Plot fatigue comparison
+	with open(os.path.join(result_path,'taskload_evolve_adp.pkl'), 'rb') as f3:
+		fatigue_adp = pickle.load(f3)
+	with open(os.path.join(result_path,'taskload_evolve_k.pkl'), 'rb') as f4:
+		fatigue_k = pickle.load(f4)
+		
+	ax2.step(sim_time, fatigue_adp[:stime], label='ADP', color='blue', linestyle='-.', where='mid')
+	ax2.step(sim_time, fatigue_k[:stime], label='Algorithm in [3]', color='red', where='mid',linestyle='dotted')
+	ax2.set_xlabel('Time Horizon T', fontsize=16) 
+	ax2.set_ylabel('Taskload', fontsize=16)
+
+	ax2.grid(True)
+	ax2.legend(fontsize=14)
+	ax2.tick_params(labelsize=14)
+	
+	plt.tight_layout()
+	plt.savefig('results_single_run/' + f'Run_{run_number}_Comparison_{initial_fatigue_state}.pdf')
+	plt.close()
 
 
 
@@ -799,9 +889,17 @@ if __name__=='__main__':
 	gamma_fp = 3
 
 
-	plot_taskload_comparison(result_path, num_tasks, alpha_tp,alpha_fp, beta_tp, beta_fp, gamma_tp, gamma_fp, stime=10,computation='mean',fatigue_model='fatigue_model_1')
-	plot_fatigue_comparison(result_path, num_tasks, alpha_tp,alpha_fp, beta_tp, beta_fp, gamma_tp, gamma_fp, stime=10, computation='mean',fatigue_model='fatigue_model_1')
+	#plot_taskload_comparison(result_path, num_tasks, alpha_tp,alpha_fp, beta_tp, beta_fp, gamma_tp, gamma_fp, stime=10,computation='mean',fatigue_model='fatigue_model_1')
+	#plot_fatigue_comparison(result_path, num_tasks, alpha_tp,alpha_fp, beta_tp, beta_fp, gamma_tp, gamma_fp, stime=10, computation='mean',fatigue_model='fatigue_model_1')
 
 	plot_performance(result_path, num_tasks, alpha_tp,alpha_fp, beta_tp, beta_fp, gamma_tp, gamma_fp,fatigue_model='fatigue_model_1')
+    
+	# compare_cum_cost(result_path, num_tasks, alpha_tp, alpha_fp, beta_tp, beta_fp, gamma_tp, gamma_fp,fatigue_model='fatigue_model_1')
 
-	compare_cum_cost(result_path, num_tasks, alpha_tp, alpha_fp, beta_tp, beta_fp, gamma_tp, gamma_fp,fatigue_model='fatigue_model_1')
+	# run_number = list(range(1,11))
+	# initial_fatigue_state = ['fatigue_low', 'fatigue_high']
+
+	# for run in run_number:
+
+	# 	for initial_fatigue in initial_fatigue_state:
+	# 		plot_single_run(run,initial_fatigue)
