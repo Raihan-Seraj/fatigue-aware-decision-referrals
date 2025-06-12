@@ -1,994 +1,876 @@
-import matplotlib.pyplot as plt 
 import os
-import numpy as np 
-from tqdm import tqdm
-from utils import Utils 
-import matplotlib
 import pickle
-from envs.fatigue_model_1 import FatigueMDP
-from envs.fatigue_model_2 import FatigueMDP2
 import contextlib
+import numpy as np
+import matplotlib.pyplot as plt
+from tqdm import tqdm
+
+from utils import Utils
+from envs.fatigue_model_1 import FatigueMDP
+
+
+# Set matplotlib to non-interactive backend for server environments
+import matplotlib
 matplotlib.use('Agg')
 
 
-class Evaluations(object):
-    def __init__(self,args):
+class Evaluations:
+    """
+    Evaluation class for comparing ADP and Kesav algorithms performance.
+    
+    This class provides comprehensive evaluation methods for fatigue-aware
+    decision referral algorithms, including performance metrics, plotting,
+    and robustness analysis.
+    """
 
+    def __init__(self, args):
+        """
+        Initialize the Evaluations class.
+        
+        Args:
+            args (argparse.Namespace): Configuration parameters containing:
+                - results_path: Path to save results
+                - num_tasks_per_batch: Number of tasks per batch
+                - alpha_tp, beta_tp, alpha_fp, beta_fp: Fatigue model parameters
+
+                - horizon: Time horizon for evaluation
+                - num_eval_runs: Number of Monte Carlo evaluation runs
+        """
         self.args = args
         
-        self.model_name = self.args.fatigue_model
-
-        if self.model_name.lower()=='fatigue_model_1':
-            self.env = FatigueMDP()
-            self.fatigue_states = self.env.fatigue_states
-            self.global_path = args.results_path + 'fatigue_model_1/num_tasks '+str(args.num_tasks_per_batch)+'/alpha_tp '+str(args.alpha_tp)+'/beta_tp '+str(args.beta_tp)+'/gamma_tp '+str(args.gamma_tp)+'/' \
-            +'alpha_fp '+str(args.alpha_fp) +'/beta_fp ' +str(args.beta_fp) + '/gamma_fp '+str(args.gamma_fp) + '/'
-
-
         
-        elif self.model_name.lower()=='fatigue_model_2':
-            self.env = FatigueMDP2()
-            self.fatigue_states = self.env.fatigue_states
-            self.global_path = args.results_path + 'fatigue_model_2/num_tasks '+str(args.num_tasks_per_batch)+'/'
+        # Initialize appropriate fatigue model
+        
+        self.env = FatigueMDP()
             
-            self.fatigue_states = self.env.fatigue_states
-
-        else:
-            raise ValueError("Invalid fatigue model name")
-
+        self.fatigue_states = self.env.fatigue_states
+        self.global_path = self._create_global_path()
         self.num_tasks_per_batch = args.num_tasks_per_batch
 
+    def _create_global_path(self):
+        """
+        Create the global path for saving results based on model parameters.
         
-
+        Returns:
+            str: Full path to results directory
+        """
+        base_path = f"{self.args.results_path}/"
         
-    '''
-    Function that computes the optimal workload using the adp solution
-    '''
-    def compute_adp_solution(self,
-        batched_posterior_h0,
-        batched_posterior_h1,
-        F_t,
-        idx_F_t,
-        V_bar,
-        ut
-    ):
+        return base_path 
 
-        all_cost = []
-
-        all_deferred_indices=[]
-
-        all_cost = []
-
-        f_t_evol = []
-        all_cstars = []
+    def compute_adp_solution(self, batched_posterior_h0, batched_posterior_h1, F_t, idx_F_t, V_bar, ut):
+        """
+        Compute the optimal workload using the ADP solution.
+        
+        This method finds the optimal workload allocation by minimizing the sum of
+        immediate cost and expected future cost based on the value function.
+        
+        Args:
+            batched_posterior_h0 (list): Posterior probabilities for H0
+            batched_posterior_h1 (list): Posterior probabilities for H1
+            F_t (int): Current fatigue state
+            idx_F_t (int): Index of current fatigue state
+            V_bar (dict): Value function at current time
+            ut (Utils): Utility object
+            
+        Returns:
+            tuple: (optimal_workload, deferred_task_indices)
+        """
+        all_costs = []
+        all_deferred_indices = []
 
         for w_t in range(self.num_tasks_per_batch):
-
-            if self.model_name.lower()=='fatigue_model_1':
-
-                w_t_discrete = ut.discretize_taskload(w_t)
-
-                F_next, idx_F_next = self.env.next_state(F_t,w_t_discrete)
+            # Discretize workload based on fatigue model
+            w_t_discrete = self._get_discrete_workload(w_t, ut)
             
-            elif self.model_name.lower()=='fatigue_model_2':
-
-                F_next, idx_F_next = self.env.next_state(F_t,w_t)
-            
-            else:
-
-                raise ValueError("Invalid fatigue model name")
-            
-            
-
-            f_t_evol.append(F_next)
-            
-            cstar, deferred_indices, gbar = ut.compute_cstar(
-                F_t,
-                w_t,
-                batched_posterior_h0,
-                batched_posterior_h1
+            # Compute immediate cost
+            cstar, deferred_indices, _ = ut.compute_cstar(
+                F_t, w_t, batched_posterior_h0, batched_posterior_h1
             )
             
-            ## fixme
-            expected_future_cost=0
-
-            if self.model_name.lower()=='fatigue_model_1':
-                for idx_F_next, F_next in enumerate(self.fatigue_states):
-                    #w_t_d = ut.discretize_taskload(w_t)
-                    expected_future_cost += self.env.P[w_t_discrete][idx_F_t,idx_F_next]*V_bar[idx_F_next]
-
-                #expected_future_cost = V_bar[idx_F_next]
-
-            
-            elif self.model_name.lower()=='fatigue_model_2':
-
-                expected_future_cost = V_bar[idx_F_next]
-
-            else:
-                raise ValueError("Invalid Fatigue Model Selected")
-
+            # Compute expected future cost
+            expected_future_cost = sum(
+                self.env.P[w_t_discrete][idx_F_t, idx_F_next] * V_bar[idx_F_next]
+                for idx_F_next in range(len(self.fatigue_states))
+            )
             
             total_cost = cstar + expected_future_cost
-
-            
-            
-            all_cost.append(total_cost)
-            all_cstars.append(cstar)
-
+            all_costs.append(total_cost)
             all_deferred_indices.append(deferred_indices)
 
+        # Find optimal workload
+        min_idx = np.argmin(all_costs)
+        return min_idx, all_deferred_indices[min_idx]
+
+    def _get_discrete_workload(self, w_t, ut):
+        """
+        Get discrete workload based on fatigue model type.
         
-        min_idx = np.argmin(all_cost)
-
+        Args:
+            w_t (int): Workload value
+            ut (Utils): Utility object
+            
+        Returns:
+            int: Discretized workload
+        """
         
-
-        wl_adp = min_idx
+        return ut.discretize_taskload(w_t)
         
-        defrred_idx_adp = all_deferred_indices[min_idx]
-
-        return wl_adp, defrred_idx_adp
-
-
-   
-
     def compute_performance(self):
+        """
+        Compute comprehensive performance comparison between ADP and Kesav algorithms.
         
+        This method runs Monte Carlo simulations to evaluate both algorithms across
+        multiple scenarios and saves detailed cost breakdowns and cumulative costs.
         
-        print("Computing peformance")
-
+        Returns:
+            None
+            
+        Side Effects:
+            - Saves cost comparison data to files
+            - Saves workload allocation data
+            - Saves batch observation data
+        """
+        print("Computing performance...")
         
         ut = Utils(self.args)
+        V_bar = self._load_value_function()
         
-        
-        
-        with open(self.global_path + 'V_func.pkl','rb') as file1:
-            V_bar = pickle.load(file1)
-        
-
-
-        #V_bar = np.load(self.args.results_path + 'num_tasks '+str(self.args.num_tasks_per_batch)+'/alpha '+str(self.args.alpha)+'/beta '+str(self.args.beta)+'/gamma '+str(self.args.gamma)+'/V_bar.npy')
-
         num_runs = self.args.num_eval_runs
-
-        all_auto_cost_k = np.zeros(num_runs)
-        all_human_cost_k = np.zeros(num_runs)
-        all_deferred_cost_k = np.zeros(num_runs)
-
-        all_auto_cost_adp = np.zeros(num_runs)
-        all_human_cost_adp = np.zeros(num_runs)
-        all_deferred_cost_adp = np.zeros(num_runs)
         
+        # Initialize cost tracking arrays
+        cost_data = self._initialize_cost_arrays(num_runs)
         
-        all_auto_cost_adp_new = np.zeros(num_runs)
-        all_human_cost_adp_new = np.zeros(num_runs)
-        all_deferred_cost_adp_new = np.zeros(num_runs)
-
+        # Initialize tracking dictionaries
         all_human_wl_adp = {}
-        all_human_wl_k={}
-
+        all_human_wl_k = {}
         all_mega_batch = {}
         run_cum_cost_k = []
         run_cum_cost_adp = []
-        for run in tqdm(range(num_runs)):
         
-            ## initial fatigue is for kesav 0
-            F_k = 0
-            idx_F_k=0
-            #initial fatigue for adp
-            F_adp = 0
-            idx_F_adp = 0
-
-            auto_cost_adp = 0
-            human_cost_adp = 0
-            deferred_cost_adp = 0
-
-            auto_cost_k = 0
-            human_cost_k=0
-            deferred_cost_k=0
-
-            auto_cost_adp_new=0
-            human_cost_adp_new=0
-            deferred_cost_adp_new = 0
-
-            mega_batch = [ut.get_auto_obs() for _ in range(self.args.horizon)]
-            all_mega_batch['Run-'+str(run+1)]=mega_batch
-            hum_wl_adp = np.zeros(self.args.horizon)
-            hum_wl_k = np.zeros(self.args.horizon)
-            cum_cost_k = []
-            cum_cost_adp = []
-            for t in range(self.args.horizon):
-
-
-                _, batched_posterior_h0, batched_posterior_h1=mega_batch[t]
-
-                wl_k, deferred_idx_k = ut.compute_kesav_policy(F_k,batched_posterior_h0, batched_posterior_h1)
-
-                wl_adp, deferred_idx_adp = self.compute_adp_solution(batched_posterior_h0,batched_posterior_h1,F_adp,idx_F_adp, V_bar[t],ut)
-
-                
-                
-
-                
-
-                hum_wl_adp[t]=wl_adp
-                hum_wl_k[t]=wl_k
-                
-                
-                a_cost_adp, h_cost_adp,def_cost_adp = ut.per_step_cost(F_adp,batched_posterior_h1,deferred_idx_adp)
-
-                a_cost_k, h_cost_k, def_cost_k = ut.per_step_cost(F_k,batched_posterior_h1,deferred_idx_k)
-
-                
-                
-                
-                auto_cost_adp+=a_cost_adp
-                human_cost_adp+=h_cost_adp
-                deferred_cost_adp += def_cost_adp
-
-                auto_cost_k += a_cost_k
-                human_cost_k += h_cost_k
-                deferred_cost_k += def_cost_k
-
-                cum_cost_k.append(a_cost_k+h_cost_k+def_cost_k)
-                cum_cost_adp.append(a_cost_adp+h_cost_adp+def_cost_adp)
-                if self.model_name.lower()=='fatigue_model_1':
-
-                    #get the next fatigue state for kesav
-                    wl_k_discrete = ut.discretize_taskload(wl_k)
-                    F_k, idx_F_k = self.env.next_state(F_k, wl_k_discrete)
-
-                    #get the next fatigue state for adp
-                    wl_adp_discrete = ut.discretize_taskload(wl_adp)
-                    F_adp, idx_F_adp = self.env.next_state(F_adp,wl_adp_discrete)
-                
-                elif self.model_name.lower() =='fatigue_model_2':
-
-                    F_k, idx_F_k = self.env.next_state(F_k, wl_k)
-                    F_adp, idx_F_adp = self.env.next_state(F_adp,wl_adp)
-                 
-                else:
-                    raise ValueError("Invalid Fatigue Model Selected")
-                
-                    
-                
-            run_cum_cost_k.append(cum_cost_k)
-            run_cum_cost_adp.append(cum_cost_adp)
-            all_human_wl_adp['Run-'+str(run+1)]=hum_wl_adp
-            all_human_wl_k['Run-'+str(run+1)]=hum_wl_k
-
-        
-
-
-
-            all_auto_cost_adp[run]= auto_cost_adp
-            all_human_cost_adp[run] = human_cost_adp
-            all_deferred_cost_adp[run] = deferred_cost_adp
-
-            all_auto_cost_k[run]= auto_cost_k
-            all_human_cost_k[run] = human_cost_k
-            all_deferred_cost_k[run] = deferred_cost_k
-
-
-            all_auto_cost_adp_new[run]= auto_cost_adp_new
-            all_human_cost_adp_new[run] = human_cost_adp_new
-            all_deferred_cost_adp_new[run] = deferred_cost_adp_new
+        # Run Monte Carlo simulations
+        for run in tqdm(range(num_runs), desc="Running performance evaluation"):
+            run_data = self._run_single_performance_evaluation(
+                run, ut, V_bar, cost_data
+            )
             
+            # Store run-specific data
+            all_human_wl_adp[f'Run-{run+1}'] = run_data['hum_wl_adp']
+            all_human_wl_k[f'Run-{run+1}'] = run_data['hum_wl_k']
+            all_mega_batch[f'Run-{run+1}'] = run_data['mega_batch']
+            run_cum_cost_k.append(run_data['cum_cost_k'])
+            run_cum_cost_adp.append(run_data['cum_cost_adp'])
 
-             
+        # Save all results
+        self._save_performance_results(
+            cost_data, all_human_wl_adp, all_human_wl_k, 
+            all_mega_batch, run_cum_cost_k, run_cum_cost_adp
+        )
 
-        path1 = self.global_path+'cost_comparison/'
+    def _initialize_cost_arrays(self, num_runs):
+        """
+        Initialize arrays for tracking costs across runs.
+        
+        Args:
+            num_runs (int): Number of evaluation runs
+            
+        Returns:
+            dict: Dictionary containing initialized cost arrays
+        """
+        return {
+            'auto_cost_k': np.zeros(num_runs),
+            'human_cost_k': np.zeros(num_runs),
+            'deferred_cost_k': np.zeros(num_runs),
+            'auto_cost_adp': np.zeros(num_runs),
+            'human_cost_adp': np.zeros(num_runs),
+            'deferred_cost_adp': np.zeros(num_runs),
+            'auto_cost_adp_new': np.zeros(num_runs),
+            'human_cost_adp_new': np.zeros(num_runs),
+            'deferred_cost_adp_new': np.zeros(num_runs)
+        }
+
+    def _run_single_performance_evaluation(self, run, ut, V_bar, cost_data):
+        """
+        Run a single performance evaluation simulation.
+        
+        Args:
+            run (int): Current run number
+            ut (Utils): Utility object
+            V_bar (list): Value function
+            cost_data (dict): Cost tracking arrays
+            
+        Returns:
+            dict: Run-specific data including costs and workloads
+        """
+        # Initialize fatigue states
+        F_k = F_adp = 0
+        idx_F_k = idx_F_adp = 0
+        
+        # Initialize cost accumulators
+        costs = {
+            'auto_k': 0, 'human_k': 0, 'deferred_k': 0,
+            'auto_adp': 0, 'human_adp': 0, 'deferred_adp': 0
+        }
+        
+        # Generate observations for entire horizon
+        mega_batch = [ut.get_auto_obs() for _ in range(self.args.horizon)]
+        
+        # Initialize tracking arrays
+        hum_wl_adp = np.zeros(self.args.horizon)
+        hum_wl_k = np.zeros(self.args.horizon)
+        cum_cost_k = []
+        cum_cost_adp = []
+        
+        # Simulate over time horizon
+        for t in range(self.args.horizon):
+            _, batched_posterior_h0, batched_posterior_h1 = mega_batch[t]
+            
+            # Compute optimal policies
+            wl_k, deferred_idx_k = ut.compute_kesav_policy(
+                F_k, batched_posterior_h0, batched_posterior_h1
+            )
+            wl_adp, deferred_idx_adp = self.compute_adp_solution(
+                batched_posterior_h0, batched_posterior_h1, F_adp, idx_F_adp, V_bar[t], ut
+            )
+            
+            # Store workloads
+            hum_wl_adp[t] = wl_adp
+            hum_wl_k[t] = wl_k
+            
+            # Compute step costs
+            step_costs = self._compute_step_costs(
+                ut, F_k, F_adp, batched_posterior_h1, deferred_idx_k, deferred_idx_adp
+            )
+            
+            # Accumulate costs
+            for key, value in step_costs.items():
+                costs[key] += value
+            
+            # Track cumulative costs
+            cum_cost_k.append(sum(step_costs[k] for k in ['auto_k', 'human_k', 'deferred_k']))
+            cum_cost_adp.append(sum(step_costs[k] for k in ['auto_adp', 'human_adp', 'deferred_adp']))
+            
+            # Update fatigue states
+            F_k, idx_F_k = self._update_fatigue_state(F_k, wl_k, ut)
+            F_adp, idx_F_adp = self._update_fatigue_state(F_adp, wl_adp, ut)
+        
+        # Store final costs
+        self._store_run_costs(run, costs, cost_data)
+        
+        return {
+            'hum_wl_adp': hum_wl_adp,
+            'hum_wl_k': hum_wl_k,
+            'mega_batch': mega_batch,
+            'cum_cost_k': cum_cost_k,
+            'cum_cost_adp': cum_cost_adp
+        }
+
+    def _compute_step_costs(self, ut, F_k, F_adp, batched_posterior_h1, deferred_idx_k, deferred_idx_adp):
+        """
+        Compute costs for a single time step.
+        
+        Args:
+            ut (Utils): Utility object
+            F_k (int): Kesav algorithm fatigue state
+            F_adp (int): ADP algorithm fatigue state
+            batched_posterior_h1 (list): Posterior probabilities for H1
+            deferred_idx_k (list): Kesav deferred task indices
+            deferred_idx_adp (list): ADP deferred task indices
+            
+        Returns:
+            dict: Step costs for both algorithms
+        """
+        a_cost_adp, h_cost_adp, def_cost_adp = ut.per_step_cost(
+            F_adp, batched_posterior_h1, deferred_idx_adp
+        )
+        a_cost_k, h_cost_k, def_cost_k = ut.per_step_cost(
+            F_k, batched_posterior_h1, deferred_idx_k
+        )
+        
+        return {
+            'auto_adp': a_cost_adp, 'human_adp': h_cost_adp, 'deferred_adp': def_cost_adp,
+            'auto_k': a_cost_k, 'human_k': h_cost_k, 'deferred_k': def_cost_k
+        }
+
+    def _update_fatigue_state(self, F_current, workload, ut):
+        """
+        Update fatigue state based on workload.
+        
+        Args:
+            F_current (int): Current fatigue state
+            workload (int): Assigned workload
+            ut (Utils): Utility object
+            
+        Returns:
+            tuple: (new_fatigue_state, new_fatigue_index)
+        """
+        workload_discrete = self._get_discrete_workload(workload, ut)
+        return self.env.next_state(F_current, workload_discrete)
+
+    def _store_run_costs(self, run, costs, cost_data):
+        """
+        Store costs from a single run into the cost tracking arrays.
+        
+        Args:
+            run (int): Run number
+            costs (dict): Costs from the run
+            cost_data (dict): Cost tracking arrays
+        """
+        cost_data['auto_cost_adp'][run] = costs['auto_adp']
+        cost_data['human_cost_adp'][run] = costs['human_adp']
+        cost_data['deferred_cost_adp'][run] = costs['deferred_adp']
+        cost_data['auto_cost_k'][run] = costs['auto_k']
+        cost_data['human_cost_k'][run] = costs['human_k']
+        cost_data['deferred_cost_k'][run] = costs['deferred_k']
+
+    def _load_value_function(self):
+        """
+        Load the value function from pickle file.
+        
+        Returns:
+            list: Value function
+        """
+        with open(self.global_path + 'V_func.pkl', 'rb') as file:
+            return pickle.load(file)
+
+    def _save_performance_results(self, cost_data, all_human_wl_adp, all_human_wl_k, 
+                                all_mega_batch, run_cum_cost_k, run_cum_cost_adp):
+        """
+        Save all performance evaluation results to files.
+        
+        Args:
+            cost_data (dict): Cost arrays
+            all_human_wl_adp (dict): ADP workload data
+            all_human_wl_k (dict): Kesav workload data
+            all_mega_batch (dict): Observation batch data
+            run_cum_cost_k (list): Cumulative costs for Kesav
+            run_cum_cost_adp (list): Cumulative costs for ADP
+        """
+        path1 = self.global_path + 'cost_comparison/'
         if not os.path.exists(path1):
             with contextlib.suppress(FileExistsError):
-                os.makedirs(path1,exist_ok=True)
+                os.makedirs(path1, exist_ok=True)
         
+        # Save pickle files
+        pickle_files = {
+            'all_cum_cost_k.pkl': run_cum_cost_k,
+            'all_cum_cost_adp.pkl': run_cum_cost_adp,
+            'all_human_wl_adp.pkl': all_human_wl_adp,
+            'all_human_wl_k.pkl': all_human_wl_k,
+            'all_mega_batch.pkl': all_mega_batch
+        }
         
-
-        with open(path1 + 'all_cum_cost_k.pkl','wb') as file:
-            pickle.dump(run_cum_cost_k,file)
+        for filename, data in pickle_files.items():
+            with open(path1 + filename, 'wb') as file:
+                pickle.dump(data, file)
         
-
-        with open(path1 + 'all_cum_cost_adp.pkl','wb') as file:
-            pickle.dump(run_cum_cost_adp,file)
-
+        # Save numpy arrays
+        numpy_files = {
+            'all_auto_cost_adp.npy': cost_data['auto_cost_adp'],
+            'all_human_cost_adp.npy': cost_data['human_cost_adp'],
+            'all_deferred_cost_adp.npy': cost_data['deferred_cost_adp'],
+            'all_auto_cost_adp_new.npy': cost_data['auto_cost_adp_new'],
+            'all_human_cost_adp_new.npy': cost_data['human_cost_adp_new'],
+            'all_deferred_cost_adp_new.npy': cost_data['deferred_cost_adp_new'],
+            'all_auto_cost_k.npy': cost_data['auto_cost_k'],
+            'all_human_cost_k.npy': cost_data['human_cost_k'],
+            'all_deferred_cost_k.npy': cost_data['deferred_cost_k']
+        }
         
-        with open(path1 + 'all_human_wl_adp.pkl','wb') as file:
-            pickle.dump(all_human_wl_adp,file)
-
-        
-        with open(path1 + 'all_human_wl_k.pkl','wb') as file2:
-            pickle.dump(all_human_wl_k,file2)
-        
-
-        with open(path1 + 'all_mega_batch.pkl','wb') as file3:
-            pickle.dump(all_mega_batch,file3)
-
-        
-        np.save(path1+'all_auto_cost_adp.npy',all_auto_cost_adp)
-
-        np.save(path1+'all_human_cost_adp.npy',all_human_cost_adp)
-
-        np.save(path1+'all_deferred_cost_adp.npy',all_deferred_cost_adp)
-
-        
-        np.save(path1+'all_auto_cost_adp_new.npy',all_auto_cost_adp_new)
-
-        np.save(path1+'all_human_cost_adp_new.npy',all_human_cost_adp_new)
-
-        np.save(path1+'all_deferred_cost_adp_new.npy',all_deferred_cost_adp_new)
-
-
-        np.save(path1+'all_auto_cost_k.npy',all_auto_cost_k)
-
-        np.save(path1+'all_human_cost_k.npy',all_human_cost_k)
-
-        np.save(path1+'all_deferred_cost_k.npy',all_deferred_cost_k)
-
-
-        
-        return
-
-
-
-
-    # def compute_missclassification_instances(self):
-        
-        
-    #     print("Computing misclassification instances")
-
-        
-    #     ut = Utils(self.args)
-        
-        
-        
-    #     with open(self.global_path + 'V_func.pkl','rb') as file1:
-    #         V_bar = pickle.load(file1)
-        
-
-
-    #     #V_bar = np.load(self.args.results_path + 'num_tasks '+str(self.args.num_tasks_per_batch)+'/alpha '+str(self.args.alpha)+'/beta '+str(self.args.beta)+'/gamma '+str(self.args.gamma)+'/V_bar.npy')
-
-    #     num_runs = self.args.num_eval_runs
-
-    #     all_auto_misclassification_k = np.zeros(num_runs)
-    #     all_human_misclassification_k = np.zeros(num_runs)
-        
-
-    #     all_auto_misclassification_adp = np.zeros(num_runs)
-    #     all_human_misclassification_adp = np.zeros(num_runs)
-        
-        
-    #     for run in tqdm(range(num_runs)):
-        
-    #         ## initial fatigue is for kesav 0
-    #         F_k = 0
-    #         idx_F_k=0
-    #         #initial fatigue for adp
-    #         F_adp = 0
-    #         idx_F_adp = 0
-
-    #         auto_misclassification_adp = 0
-    #         human_misclassification_adp = 0
-            
-
-    #         auto_misclassification_k = 0
-    #         human_misclassification_k=0
-          
-
-
-    #         mega_batch = [ut.get_auto_obs() for _ in range(self.args.horizon)]
-
-            
-    #         for t in range(self.args.horizon):
-
-
-    #             _, batched_posterior_h0, batched_posterior_h1=mega_batch[t]
-
-    #             wl_k, deferred_idx_k = ut.compute_kesav_policy(F_k,batched_posterior_h0, batched_posterior_h1)
-
-    #             wl_adp, deferred_idx_adp = self.compute_adp_solution(batched_posterior_h0,batched_posterior_h1,F_adp,idx_F_adp, V_bar[t],ut)
-
-                
-                
-
-                
-    #             a_cost_adp, h_cost_adp,def_cost_adp = ut.per_step_cost(F_adp,batched_posterior_h1,deferred_idx_adp)
-
-    #             a_cost_k, h_cost_k, def_cost_k = ut.per_step_cost(F_k,batched_posterior_h1,deferred_idx_k)
-
-                
-                
-                
-    #             auto_cost_adp+=a_cost_adp
-    #             human_cost_adp+=h_cost_adp
-    #             deferred_cost_adp += def_cost_adp
-
-    #             auto_cost_k += a_cost_k
-    #             human_cost_k += h_cost_k
-    #             deferred_cost_k += def_cost_k
-
-    #             cum_cost_k.append(a_cost_k+h_cost_k+def_cost_k)
-    #             cum_cost_adp.append(a_cost_adp+h_cost_adp+def_cost_adp)
-    #             if self.model_name.lower()=='fatigue_model_1':
-
-    #                 #get the next fatigue state for kesav
-    #                 wl_k_discrete = ut.discretize_taskload(wl_k)
-    #                 F_k, idx_F_k = self.env.next_state(F_k, wl_k_discrete)
-
-    #                 #get the next fatigue state for adp
-    #                 wl_adp_discrete = ut.discretize_taskload(wl_adp)
-    #                 F_adp, idx_F_adp = self.env.next_state(F_adp,wl_adp_discrete)
-                
-    #             elif self.model_name.lower() =='fatigue_model_2':
-
-    #                 F_k, idx_F_k = self.env.next_state(F_k, wl_k)
-    #                 F_adp, idx_F_adp = self.env.next_state(F_adp,wl_adp)
-                 
-    #             else:
-    #                 raise ValueError("Invalid Fatigue Model Selected")
-                
-                    
-                
-    #         run_cum_cost_k.append(cum_cost_k)
-    #         run_cum_cost_adp.append(cum_cost_adp)
-    #         all_human_wl_adp['Run-'+str(run+1)]=hum_wl_adp
-    #         all_human_wl_k['Run-'+str(run+1)]=hum_wl_k
-
-        
-
-
-
-    #         all_auto_cost_adp[run]= auto_cost_adp
-    #         all_human_cost_adp[run] = human_cost_adp
-    #         all_deferred_cost_adp[run] = deferred_cost_adp
-
-    #         all_auto_cost_k[run]= auto_cost_k
-    #         all_human_cost_k[run] = human_cost_k
-    #         all_deferred_cost_k[run] = deferred_cost_k
-
-
-    #         all_auto_cost_adp_new[run]= auto_cost_adp_new
-    #         all_human_cost_adp_new[run] = human_cost_adp_new
-    #         all_deferred_cost_adp_new[run] = deferred_cost_adp_new
-            
-
-             
-
-    #     path1 = self.global_path+'cost_comparison/'
-    #     if not os.path.exists(path1):
-    #         with contextlib.suppress(FileExistsError):
-    #             os.makedirs(path1,exist_ok=True)
-        
-        
-
-    #     with open(path1 + 'all_cum_cost_k.pkl','wb') as file:
-    #         pickle.dump(run_cum_cost_k,file)
-        
-
-    #     with open(path1 + 'all_cum_cost_adp.pkl','wb') as file:
-    #         pickle.dump(run_cum_cost_adp,file)
-
-        
-    #     with open(path1 + 'all_human_wl_adp.pkl','wb') as file:
-    #         pickle.dump(all_human_wl_adp,file)
-
-        
-    #     with open(path1 + 'all_human_wl_k.pkl','wb') as file2:
-    #         pickle.dump(all_human_wl_k,file2)
-        
-
-    #     with open(path1 + 'all_mega_batch.pkl','wb') as file3:
-    #         pickle.dump(all_mega_batch,file3)
-
-        
-    #     np.save(path1+'all_auto_cost_adp.npy',all_auto_cost_adp)
-
-    #     np.save(path1+'all_human_cost_adp.npy',all_human_cost_adp)
-
-    #     np.save(path1+'all_deferred_cost_adp.npy',all_deferred_cost_adp)
-
-        
-    #     np.save(path1+'all_auto_cost_adp_new.npy',all_auto_cost_adp_new)
-
-    #     np.save(path1+'all_human_cost_adp_new.npy',all_human_cost_adp_new)
-
-    #     np.save(path1+'all_deferred_cost_adp_new.npy',all_deferred_cost_adp_new)
-
-
-    #     np.save(path1+'all_auto_cost_k.npy',all_auto_cost_k)
-
-    #     np.save(path1+'all_human_cost_k.npy',all_human_cost_k)
-
-    #     np.save(path1+'all_deferred_cost_k.npy',all_deferred_cost_k)
-
-
-        
-    #     return
-
-
-        
-
-
-
-
-
-
+        for filename, data in numpy_files.items():
+            np.save(os.path.join(path1, filename), data)
 
     def run_evaluation(self):
+        """
+        Run a single evaluation trajectory comparing ADP and Kesav algorithms.
         
-
+        Returns:
+            tuple: (fatigue_evolution_kesav, fatigue_evolution_adp, 
+                   taskload_evolution_kesav, taskload_evolution_adp)
+        """
         ut = Utils(self.args)
-
+        V_bar = self._load_value_function()
         
-        with open(self.global_path+'V_func.pkl','rb') as file:
-            V_bar = pickle.load(file)
-       
+        # Initialize states
+        F_k = F_adp = 0
+        idx_F_k = idx_F_adp = 0
         
-
-        ## initial fatigue is for kesav 0
-        F_k = 0
-        idx_F_k =0
-        #initial fatigue for adp
-        F_adp = 0
-        idx_F_adp = 0
-       
-
+        # Initialize tracking lists
         fatigue_evolution_kesav = []
         fatigue_evolution_adp = []
-        
-
         taskload_evolution_kesav = []
-        taskload_evolution_adp =[]
+        taskload_evolution_adp = []
         
-
+        # Generate observations for entire horizon
         mega_obs = [ut.get_auto_obs() for _ in range(self.args.horizon)]
         
         for t in range(self.args.horizon):
-
+            # Record current fatigue states
             fatigue_evolution_kesav.append(F_k)
             fatigue_evolution_adp.append(F_adp)
             
-
-            batched_obs, batched_posterior_h0, batched_posterior_h1= mega_obs[t]
-
-            wl_k, deferred_idx_k = ut.compute_kesav_policy(F_k,batched_posterior_h0, batched_posterior_h1)
-
-            wl_adp, deferred_idx_adp = self.compute_adp_solution(batched_posterior_h0,batched_posterior_h1,F_adp,idx_F_adp, V_bar[t],ut)
-
-
-            if self.model_name.lower()== 'fatigue_model_1':
-                wl_k_discrete = ut.discretize_taskload(wl_k)
-                wl_adp_discrete = ut.discretize_taskload(wl_adp)
-
-                F_k, idx_F_k = self.env.next_state(F_k, wl_k_discrete)
-
-                F_adp, idx_F_adp = self.env.next_state(F_adp, wl_adp_discrete)
-
-            elif self.model_name.lower() == 'fatigue_model_2':
-
-                F_k, idx_F_k = self.env.next_state(F_k, wl_k)
-                F_adp, idx_F_adp = self.env.next_state(F_adp, wl_adp)
-            else:
-                raise ValueError("Invalid name for fatigue model")
-
+            # Get observations
+            _, batched_posterior_h0, batched_posterior_h1 = mega_obs[t]
             
+            # Compute optimal policies
+            wl_k, _ = ut.compute_kesav_policy(F_k, batched_posterior_h0, batched_posterior_h1)
+            wl_adp, _ = self.compute_adp_solution(
+                batched_posterior_h0, batched_posterior_h1, F_adp, idx_F_adp, V_bar[t], ut
+            )
+            
+            # Record workloads
+            taskload_evolution_kesav.append(wl_k)
             taskload_evolution_adp.append(wl_adp)
             
-            taskload_evolution_kesav.append(wl_k)
+            # Update fatigue states
+            F_k, idx_F_k = self._update_fatigue_state(F_k, wl_k, ut)
+            F_adp, idx_F_adp = self._update_fatigue_state(F_adp, wl_adp, ut)
         
-        return fatigue_evolution_kesav,fatigue_evolution_adp, taskload_evolution_kesav, taskload_evolution_adp
-
-
-
+        return (fatigue_evolution_kesav, fatigue_evolution_adp, 
+                taskload_evolution_kesav, taskload_evolution_adp)
 
     def run_perf_eval(self):
+        """
+        Run performance evaluation and generate comparison plots.
         
+        This method runs multiple evaluation trajectories, computes statistics,
+        and generates plots comparing fatigue and workload evolution.
+        
+        Returns:
+            None
+            
+        Side Effects:
+            - Saves trajectory data to files
+            - Generates and saves comparison plots
+        """
         num_runs = self.args.num_eval_runs
-
+        
+        # Initialize tracking lists
         all_fatigue_kesav = []
         all_fatigue_adp = []
         all_taskload_kesav = []
         all_taskload_adp = []
+        
+        # Run evaluations
+        for run in tqdm(range(num_runs), desc="Running trajectory evaluations"):
+            trajectories = self.run_evaluation()
+            all_fatigue_kesav.append(trajectories[0])
+            all_fatigue_adp.append(trajectories[1])
+            all_taskload_kesav.append(trajectories[2])
+            all_taskload_adp.append(trajectories[3])
+        
+        # Save trajectory data
+        self._save_trajectory_data(
+            all_fatigue_kesav, all_fatigue_adp, 
+            all_taskload_kesav, all_taskload_adp
+        )
+        
+        # Generate plots
+        self._generate_comparison_plots(
+            all_fatigue_kesav, all_fatigue_adp,
+            all_taskload_kesav, all_taskload_adp
+        )
 
-        for run in tqdm(range(num_runs)): 
+    def _save_trajectory_data(self, all_fatigue_kesav, all_fatigue_adp, 
+                            all_taskload_kesav, all_taskload_adp):
+        """
+        Save trajectory data to pickle files.
         
-            fatigue_evolution_kesav,fatigue_evolution_adp, taskload_evolution_kesav, taskload_evolution_adp= self.run_evaluation()
-
-            all_fatigue_kesav.append(fatigue_evolution_kesav)
-            all_fatigue_adp.append(fatigue_evolution_adp)
-            all_taskload_kesav.append(taskload_evolution_kesav)
-            all_taskload_adp.append(taskload_evolution_adp)
-            ## plotting the level of fatigue 
-
-        
-        
-        
-        path_name = self.global_path+'/plot_analysis/'
+        Args:
+            all_fatigue_kesav (list): Fatigue trajectories for Kesav algorithm
+            all_fatigue_adp (list): Fatigue trajectories for ADP algorithm
+            all_taskload_kesav (list): Taskload trajectories for Kesav algorithm
+            all_taskload_adp (list): Taskload trajectories for ADP algorithm
+        """
+        path_name = self.global_path + '/plot_analysis/'
         if not os.path.exists(path_name):
             with contextlib.suppress(FileExistsError):
-                os.makedirs(path_name,exist_ok=True)
+                os.makedirs(path_name, exist_ok=True)
         
+        data_files = {
+            'all_fatigue_k.pkl': all_fatigue_kesav,
+            'all_fatigue_adp.pkl': all_fatigue_adp,
+            'all_taskload_k.pkl': all_taskload_kesav,
+            'all_taskload_adp.pkl': all_taskload_adp
+        }
         
+        for filename, data in data_files.items():
+            with open(path_name + filename, 'wb') as file:
+                pickle.dump(data, file)
+
+    def _generate_comparison_plots(self, all_fatigue_kesav, all_fatigue_adp,
+                                 all_taskload_kesav, all_taskload_adp):
+        """
+        Generate comparison plots for fatigue and taskload evolution.
         
-        with open(path_name+'all_fatigue_k.pkl','wb') as file1:
-            pickle.dump(all_fatigue_kesav,file1)
-
-        with open(path_name+'all_fatigue_adp.pkl','wb') as file2:
-            pickle.dump(all_fatigue_adp,file2)
+        Args:
+            all_fatigue_kesav (list): Fatigue trajectories for Kesav algorithm
+            all_fatigue_adp (list): Fatigue trajectories for ADP algorithm
+            all_taskload_kesav (list): Taskload trajectories for Kesav algorithm
+            all_taskload_adp (list): Taskload trajectories for ADP algorithm
+        """
+        path_name = self.global_path + '/plot_analysis/'
+        time_steps = np.arange(1, self.args.horizon + 1, 1)
         
-        with open(path_name+'all_taskload_k.pkl','wb') as file3:
-            pickle.dump(all_taskload_kesav,file3)
+        # Compute statistics for fatigue
+        fatigue_stats = self._compute_trajectory_statistics(all_fatigue_kesav, all_fatigue_adp)
         
-        with open(path_name+'all_taskload_adp.pkl','wb') as file4:
-            pickle.dump(all_taskload_adp,file4)
-
-     
+        # Plot fatigue evolution
+        self._plot_evolution_comparison(
+            time_steps, fatigue_stats, 'Fatigue Level', 
+            path_name + 'fatigue_evolution_comparison.pdf'
+        )
         
-       #median_fatigue_k =  all_fatigue_kesav[sample_path_choose]
-        median_fatigue_k=np.median(all_fatigue_kesav,axis=0)
-        std_fatigue_k_lower = np.percentile(all_fatigue_kesav,25,axis=0)
-        std_fatigue_k_higher = np.percentile(all_fatigue_kesav,75,axis=0)
-
-
-        #median_fatigue_adp = all_fatigue_adp[sample_path_choose]
-        median_fatigue_adp=np.median(all_fatigue_adp,axis=0)
-        std_fatigue_adp_lower = np.percentile(all_fatigue_adp,25,axis=0)
-        std_fatigue_adp_higher = np.percentile(all_fatigue_adp,75,axis=0)
-
-
-        #median_taskload_k = all_taskload_kesav[sample_path_choose]
-        median_taskload_k=np.median(all_taskload_kesav,axis=0)
-        std_taskload_k_lower = np.percentile(all_taskload_kesav,25,axis=0)
-        std_taskload_k_higher = np.percentile(all_taskload_kesav,75,axis=0)
-
+        # Compute statistics for taskload
+        taskload_stats = self._compute_trajectory_statistics(all_taskload_kesav, all_taskload_adp)
         
+        # Plot taskload evolution
+        self._plot_evolution_comparison(
+            time_steps, taskload_stats, 'Workload level',
+            path_name + 'taskload_evolution_comparison.pdf'
+        )
 
-        #median_taskload_adp = all_taskload_adp[sample_path_choose]
-        median_taskload_adp=np.median(all_taskload_adp,axis=0)
-        std_taskload_adp_lower = np.percentile(all_taskload_adp,25,axis=0)
-        std_taskload_adp_higher = np.percentile(all_taskload_adp,75,axis=0)
-
-
-        plt.step(np.arange(1,self.args.horizon+1,1),median_fatigue_k,color='black',where='post',label='K-Algorithm')
-        plt.fill_between(np.arange(1,self.args.horizon+1,1), std_fatigue_k_lower, std_fatigue_k_higher,step='post', alpha=0.2, color='black')
-
-        plt.step(np.arange(1,self.args.horizon+1,1),median_fatigue_adp,color='orange',where='post',label='ADP')
-        plt.fill_between(np.arange(1,self.args.horizon+1,1), std_fatigue_adp_lower, std_fatigue_adp_higher,step='post', alpha=0.2, color='orange')
-
-        plt.grid(True)
+    def _compute_trajectory_statistics(self, kesav_data, adp_data):
+        """
+        Compute median and percentile statistics for trajectory data.
         
+        Args:
+            kesav_data (list): Trajectory data for Kesav algorithm
+            adp_data (list): Trajectory data for ADP algorithm
+            
+        Returns:
+            dict: Statistics including medians and percentiles
+        """
+        return {
+            'median_k': np.median(kesav_data, axis=0),
+            'lower_k': np.percentile(kesav_data, 25, axis=0),
+            'upper_k': np.percentile(kesav_data, 75, axis=0),
+            'median_adp': np.median(adp_data, axis=0),
+            'lower_adp': np.percentile(adp_data, 25, axis=0),
+            'upper_adp': np.percentile(adp_data, 75, axis=0)
+        }
+
+    def _plot_evolution_comparison(self, time_steps, stats, ylabel, filename):
+        """
+        Create and save evolution comparison plot.
         
+        Args:
+            time_steps (np.array): Time step array
+            stats (dict): Statistics dictionary
+            ylabel (str): Y-axis label
+            filename (str): Output filename
+        """
+        plt.figure(figsize=(10, 6))
+        
+        # Plot Kesav algorithm
+        plt.step(time_steps, stats['median_k'], color='black', where='post', 
+                label='K-Algorithm', linewidth=2)
+        plt.fill_between(time_steps, stats['lower_k'], stats['upper_k'],
+                        step='post', alpha=0.2, color='black')
+        
+        # Plot ADP algorithm
+        plt.step(time_steps, stats['median_adp'], color='orange', where='post', 
+                label='ADP', linewidth=2)
+        plt.fill_between(time_steps, stats['lower_adp'], stats['upper_adp'],
+                        step='post', alpha=0.2, color='orange')
+        
+        plt.grid(True, alpha=0.3)
         plt.xlabel('Time')
-        plt.ylabel('Fatigue Level')
+        plt.ylabel(ylabel)
         plt.legend()
-        plt.savefig(path_name+'fatigue_evolution_comparison.pdf')
-
-        plt.clf()
+        plt.tight_layout()
+        plt.savefig(filename, dpi=300, bbox_inches='tight')
         plt.close()
 
-
-        plt.step(np.arange(1,self.args.horizon+1,1),median_taskload_k,color='black',where='post',label='K-Algorithm')
-        plt.fill_between(np.arange(1,self.args.horizon+1,1), std_taskload_k_lower, std_taskload_k_higher,step='post', alpha=0.2, color='black')
-
-        plt.step(np.arange(1,self.args.horizon+1,1),median_taskload_adp,color='orange',where='post',label='ADP')
-        plt.fill_between(np.arange(1,self.args.horizon+1,1), std_taskload_adp_lower, std_taskload_adp_higher,step='post', alpha=0.2, color='orange')
+    def eval_single_run(self, initial_fatigue_state, initial_fatigue_index):
+        """
+        Evaluate a single run with specified initial fatigue state.
         
-    
-        plt.xlabel('Time')
-        plt.ylabel('Workload level')
-        plt.legend()
-        plt.savefig(path_name+'taskload_evolution_comparison.pdf')
-
-        plt.clf()
-        plt.close()
-
-        return
-
-
-
-    def eval_single_run(self,initial_fatigue_state,initial_fatigue_index):
-
+        Args:
+            initial_fatigue_state (int): Initial fatigue state value
+            initial_fatigue_index (int): Initial fatigue state index
+            
+        Returns:
+            tuple: (fatigue_evolution_kesav, fatigue_evolution_adp, 
+                   taskload_evolution_kesav, taskload_evolution_adp)
+        """
         ut = Utils(self.args)
-
+        V_bar = self._load_value_function()
         
-        with open(self.global_path+'V_func.pkl','rb') as file:
-            V_bar = pickle.load(file)
-       
+        # Initialize states with specified values
+        F_k = F_adp = initial_fatigue_state
+        idx_F_k = idx_F_adp = initial_fatigue_index
         
-
-        ## initial fatigue is for kesav 0
-        F_k =initial_fatigue_state
-        idx_F_k =initial_fatigue_index
-        #initial fatigue for adp
-        F_adp = initial_fatigue_state
-        idx_F_adp = initial_fatigue_index
-       
-
+        # Initialize tracking lists
         fatigue_evolution_kesav = []
         fatigue_evolution_adp = []
-        
-
         taskload_evolution_kesav = []
-        taskload_evolution_adp =[]
+        taskload_evolution_adp = []
         
-
+        # Generate observations for entire horizon
         mega_obs = [ut.get_auto_obs() for _ in range(self.args.horizon)]
         
         for t in range(self.args.horizon):
-
+            # Record current fatigue states
             fatigue_evolution_kesav.append(F_k)
             fatigue_evolution_adp.append(F_adp)
             
-
-            batched_obs, batched_posterior_h0, batched_posterior_h1= mega_obs[t]
-
-            wl_k, deferred_idx_k = ut.compute_kesav_policy(F_k,batched_posterior_h0, batched_posterior_h1)
-
-            wl_adp, deferred_idx_adp = self.compute_adp_solution(batched_posterior_h0,batched_posterior_h1,F_adp,idx_F_adp, V_bar[t],ut)
-
-
-            if self.model_name.lower()== 'fatigue_model_1':
-                wl_k_discrete = ut.discretize_taskload(wl_k)
-                wl_adp_discrete = ut.discretize_taskload(wl_adp)
-
-                F_k, idx_F_k = self.env.next_state(F_k, wl_k_discrete)
-
-                F_adp, idx_F_adp = self.env.next_state(F_adp, wl_adp_discrete)
-
-            elif self.model_name.lower() == 'fatigue_model_2':
-
-                F_k, idx_F_k = self.env.next_state(F_k, wl_k)
-                F_adp, idx_F_adp = self.env.next_state(F_adp, wl_adp)
-            else:
-                raise ValueError("Invalid name for fatigue model")
-
+            # Get observations
+            _, batched_posterior_h0, batched_posterior_h1 = mega_obs[t]
             
+            # Compute optimal policies
+            wl_k, _ = ut.compute_kesav_policy(F_k, batched_posterior_h0, batched_posterior_h1)
+            wl_adp, _ = self.compute_adp_solution(
+                batched_posterior_h0, batched_posterior_h1, F_adp, idx_F_adp, V_bar[t], ut
+            )
+            
+            # Record workloads
+            taskload_evolution_kesav.append(wl_k)
             taskload_evolution_adp.append(wl_adp)
             
-            taskload_evolution_kesav.append(wl_k)
+            # Update fatigue states
+            F_k, idx_F_k = self._update_fatigue_state(F_k, wl_k, ut)
+            F_adp, idx_F_adp = self._update_fatigue_state(F_adp, wl_adp, ut)
         
-        return fatigue_evolution_kesav,fatigue_evolution_adp, taskload_evolution_kesav, taskload_evolution_adp
-
-
-   
-
+        return (fatigue_evolution_kesav, fatigue_evolution_adp, 
+                taskload_evolution_kesav, taskload_evolution_adp)
 
     def eval_single_run_perturbed_fatigue(self, original_fatigue_mdp, perturbed_fatigue_mdp):
-
-        ut = Utils(self.args)
+        """
+        Evaluate a single run with perturbed fatigue model for robustness analysis.
         
-        with open(self.global_path+'V_func.pkl','rb') as file:
-            V_bar = pickle.load(file)
-
-        F_k =0
-        idx_F_k =0
-        #initial fatigue for adp
-        F_adp = 0
-        idx_F_adp = 0
-       
-
+        Args:
+            original_fatigue_mdp: Original fatigue MDP (unused but kept for compatibility)
+            perturbed_fatigue_mdp: Perturbed fatigue MDP for simulation
+            
+        Returns:
+            tuple: (fatigue_evolution_kesav, fatigue_evolution_adp, 
+                   taskload_evolution_kesav, taskload_evolution_adp)
+        """
+        ut = Utils(self.args)
+        V_bar = self._load_value_function()
+        
+        # Initialize states
+        F_k = F_adp = 0
+        idx_F_k = idx_F_adp = 0
+        
+        # Initialize tracking lists
         fatigue_evolution_kesav = []
         fatigue_evolution_adp = []
-        
-
         taskload_evolution_kesav = []
-        taskload_evolution_adp =[]
+        taskload_evolution_adp = []
         
-
+        # Generate observations for entire horizon
         mega_obs = [ut.get_auto_obs() for _ in range(self.args.horizon)]
         
         for t in range(self.args.horizon):
-
+            # Record current fatigue states
             fatigue_evolution_kesav.append(F_k)
             fatigue_evolution_adp.append(F_adp)
             
-
-            batched_obs, batched_posterior_h0, batched_posterior_h1= mega_obs[t]
-
-            wl_k, deferred_idx_k = ut.compute_kesav_policy(F_k,batched_posterior_h0, batched_posterior_h1)
-
-            wl_adp, deferred_idx_adp = self.compute_adp_solution(batched_posterior_h0,batched_posterior_h1,F_adp,idx_F_adp, V_bar[t],ut)
-
-
+            # Get observations
+            _, batched_posterior_h0, batched_posterior_h1 = mega_obs[t]
             
-            wl_k_discrete = ut.discretize_taskload(wl_k)
-            wl_adp_discrete = ut.discretize_taskload(wl_adp)
-
-            F_k, idx_F_k = perturbed_fatigue_mdp.next_state(F_k, wl_k_discrete)
-
-            F_adp, idx_F_adp = perturbed_fatigue_mdp.next_state(F_adp, wl_adp_discrete)
-
+            # Compute optimal policies
+            wl_k, _ = ut.compute_kesav_policy(F_k, batched_posterior_h0, batched_posterior_h1)
+            wl_adp, _ = self.compute_adp_solution(
+                batched_posterior_h0, batched_posterior_h1, F_adp, idx_F_adp, V_bar[t], ut
+            )
             
+            # Record workloads
+            taskload_evolution_kesav.append(wl_k)
             taskload_evolution_adp.append(wl_adp)
             
-            taskload_evolution_kesav.append(wl_k)
+            # Update fatigue states using perturbed model
+            wl_k_discrete = ut.discretize_taskload(wl_k)
+            wl_adp_discrete = ut.discretize_taskload(wl_adp)
+            F_k, idx_F_k = perturbed_fatigue_mdp.next_state(F_k, wl_k_discrete)
+            F_adp, idx_F_adp = perturbed_fatigue_mdp.next_state(F_adp, wl_adp_discrete)
         
-        return fatigue_evolution_kesav,fatigue_evolution_adp, taskload_evolution_kesav, taskload_evolution_adp
-
-
+        return (fatigue_evolution_kesav, fatigue_evolution_adp, 
+                taskload_evolution_kesav, taskload_evolution_adp)
 
     def compute_performance_perturbed_fatigue(self, perturbed_fatigue_mdp, path_to_save):
+        """
+        Compute performance with perturbed fatigue model for robustness analysis.
         
-        
-        print("Computing peformance")
-
+        Args:
+            perturbed_fatigue_mdp: Perturbed fatigue MDP
+            path_to_save (str): Path to save results
+            
+        Returns:
+            None
+            
+        Side Effects:
+            - Saves robustness analysis results
+            - Saves perturbed transition matrices
+        """
+        print("Computing performance with perturbed fatigue model...")
         
         ut = Utils(self.args)
+        V_bar = self._load_value_function()
         
-        
-        
-        with open(self.global_path + 'V_func.pkl','rb') as file1:
-            V_bar = pickle.load(file1)
-        
-
-
-        #V_bar = np.load(self.args.results_path + 'num_tasks '+str(self.args.num_tasks_per_batch)+'/alpha '+str(self.args.alpha)+'/beta '+str(self.args.beta)+'/gamma '+str(self.args.gamma)+'/V_bar.npy')
-
         num_runs = self.args.num_eval_runs
-
-        all_auto_cost_k = np.zeros(num_runs)
-        all_human_cost_k = np.zeros(num_runs)
-        all_deferred_cost_k = np.zeros(num_runs)
-
-        all_auto_cost_adp = np.zeros(num_runs)
-        all_human_cost_adp = np.zeros(num_runs)
-        all_deferred_cost_adp = np.zeros(num_runs)
+        cost_data = self._initialize_cost_arrays(num_runs)
         
-        
-        all_auto_cost_adp_new = np.zeros(num_runs)
-        all_human_cost_adp_new = np.zeros(num_runs)
-        all_deferred_cost_adp_new = np.zeros(num_runs)
-
+        # Initialize tracking dictionaries
         all_human_wl_adp = {}
-        all_human_wl_k={}
-
+        all_human_wl_k = {}
         all_mega_batch = {}
         run_cum_cost_k = []
         run_cum_cost_adp = []
-        for run in tqdm(range(num_runs)):
         
-            ## initial fatigue is for kesav 0
-            F_k = 0
-            idx_F_k=0
-            #initial fatigue for adp
-            F_adp = 0
-            idx_F_adp = 0
-
-            auto_cost_adp = 0
-            human_cost_adp = 0
-            deferred_cost_adp = 0
-
-            auto_cost_k = 0
-            human_cost_k=0
-            deferred_cost_k=0
-
-            auto_cost_adp_new=0
-            human_cost_adp_new=0
-            deferred_cost_adp_new = 0
-
-            mega_batch = [ut.get_auto_obs() for _ in range(self.args.horizon)]
-            all_mega_batch['Run-'+str(run+1)]=mega_batch
-            hum_wl_adp = np.zeros(self.args.horizon)
-            hum_wl_k = np.zeros(self.args.horizon)
-            cum_cost_k = []
-            cum_cost_adp = []
-            for t in range(self.args.horizon):
-
-
-                _, batched_posterior_h0, batched_posterior_h1=mega_batch[t]
-
-                wl_k, deferred_idx_k = ut.compute_kesav_policy(F_k,batched_posterior_h0, batched_posterior_h1)
-
-                wl_adp, deferred_idx_adp = self.compute_adp_solution(batched_posterior_h0,batched_posterior_h1,F_adp,idx_F_adp, V_bar[t],ut)
-
-                
-                
-
-                
-
-                hum_wl_adp[t]=wl_adp
-                hum_wl_k[t]=wl_k
-                
-                
-                a_cost_adp, h_cost_adp,def_cost_adp = ut.per_step_cost(F_adp,batched_posterior_h1,deferred_idx_adp)
-
-                a_cost_k, h_cost_k, def_cost_k = ut.per_step_cost(F_k,batched_posterior_h1,deferred_idx_k)
-
-                
-                
-                
-                auto_cost_adp+=a_cost_adp
-                human_cost_adp+=h_cost_adp
-                deferred_cost_adp += def_cost_adp
-
-                auto_cost_k += a_cost_k
-                human_cost_k += h_cost_k
-                deferred_cost_k += def_cost_k
-
-                cum_cost_k.append(a_cost_k+h_cost_k+def_cost_k)
-                cum_cost_adp.append(a_cost_adp+h_cost_adp+def_cost_adp)
-                
-
-                #get the next fatigue state for kesav
-                wl_k_discrete = ut.discretize_taskload(wl_k)
-                F_k, idx_F_k = perturbed_fatigue_mdp.next_state(F_k, wl_k_discrete)
-
-                #get the next fatigue state for adp
-                wl_adp_discrete = ut.discretize_taskload(wl_adp)
-                F_adp, idx_F_adp = perturbed_fatigue_mdp.next_state(F_adp,wl_adp_discrete)
-
-                    
-                
-            run_cum_cost_k.append(cum_cost_k)
-            run_cum_cost_adp.append(cum_cost_adp)
-            all_human_wl_adp['Run-'+str(run+1)]=hum_wl_adp
-            all_human_wl_k['Run-'+str(run+1)]=hum_wl_k
-
-        
-
-
-
-            all_auto_cost_adp[run]= auto_cost_adp
-            all_human_cost_adp[run] = human_cost_adp
-            all_deferred_cost_adp[run] = deferred_cost_adp
-
-            all_auto_cost_k[run]= auto_cost_k
-            all_human_cost_k[run] = human_cost_k
-            all_deferred_cost_k[run] = deferred_cost_k
-
-
-            all_auto_cost_adp_new[run]= auto_cost_adp_new
-            all_human_cost_adp_new[run] = human_cost_adp_new
-            all_deferred_cost_adp_new[run] = deferred_cost_adp_new
+        # Run Monte Carlo simulations with perturbed model
+        for run in tqdm(range(num_runs), desc="Running perturbed performance evaluation"):
+            run_data = self._run_single_performance_evaluation_perturbed(
+                run, ut, V_bar, cost_data, perturbed_fatigue_mdp
+            )
             
+            # Store run-specific data
+            all_human_wl_adp[f'Run-{run+1}'] = run_data['hum_wl_adp']
+            all_human_wl_k[f'Run-{run+1}'] = run_data['hum_wl_k']
+            all_mega_batch[f'Run-{run+1}'] = run_data['mega_batch']
+            run_cum_cost_k.append(run_data['cum_cost_k'])
+            run_cum_cost_adp.append(run_data['cum_cost_adp'])
+        
+        # Save results with perturbed model data
+        self._save_perturbed_performance_results(
+            path_to_save, perturbed_fatigue_mdp, cost_data, 
+            all_human_wl_adp, all_human_wl_k, all_mega_batch,
+            run_cum_cost_k, run_cum_cost_adp
+        )
 
-             
+    def _run_single_performance_evaluation_perturbed(self, run, ut, V_bar, cost_data, perturbed_mdp):
+        """
+        Run a single performance evaluation with perturbed fatigue model.
+        
+        Args:
+            run (int): Current run number
+            ut (Utils): Utility object
+            V_bar (list): Value function
+            cost_data (dict): Cost tracking arrays
+            perturbed_mdp: Perturbed fatigue MDP
+            
+        Returns:
+            dict: Run-specific data including costs and workloads
+        """
+        # Initialize fatigue states
+        F_k = F_adp = 0
+        idx_F_k = idx_F_adp = 0
+        
+        # Initialize cost accumulators
+        costs = {
+            'auto_k': 0, 'human_k': 0, 'deferred_k': 0,
+            'auto_adp': 0, 'human_adp': 0, 'deferred_adp': 0
+        }
+        
+        # Generate observations for entire horizon
+        mega_batch = [ut.get_auto_obs() for _ in range(self.args.horizon)]
+        
+        # Initialize tracking arrays
+        hum_wl_adp = np.zeros(self.args.horizon)
+        hum_wl_k = np.zeros(self.args.horizon)
+        cum_cost_k = []
+        cum_cost_adp = []
+        
+        # Simulate over time horizon
+        for t in range(self.args.horizon):
+            _, batched_posterior_h0, batched_posterior_h1 = mega_batch[t]
+            
+            # Compute optimal policies
+            wl_k, deferred_idx_k = ut.compute_kesav_policy(
+                F_k, batched_posterior_h0, batched_posterior_h1
+            )
+            wl_adp, deferred_idx_adp = self.compute_adp_solution(
+                batched_posterior_h0, batched_posterior_h1, F_adp, idx_F_adp, V_bar[t], ut
+            )
+            
+            # Store workloads
+            hum_wl_adp[t] = wl_adp
+            hum_wl_k[t] = wl_k
+            
+            # Compute step costs
+            step_costs = self._compute_step_costs(
+                ut, F_k, F_adp, batched_posterior_h1, deferred_idx_k, deferred_idx_adp
+            )
+            
+            # Accumulate costs
+            for key, value in step_costs.items():
+                costs[key] += value
+            
+            # Track cumulative costs
+            cum_cost_k.append(sum(step_costs[k] for k in ['auto_k', 'human_k', 'deferred_k']))
+            cum_cost_adp.append(sum(step_costs[k] for k in ['auto_adp', 'human_adp', 'deferred_adp']))
+            
+            # Update fatigue states using perturbed model
+            wl_k_discrete = ut.discretize_taskload(wl_k)
+            wl_adp_discrete = ut.discretize_taskload(wl_adp)
+            F_k, idx_F_k = perturbed_mdp.next_state(F_k, wl_k_discrete)
+            F_adp, idx_F_adp = perturbed_mdp.next_state(F_adp, wl_adp_discrete)
+        
+        # Store final costs
+        self._store_run_costs(run, costs, cost_data)
+        
+        return {
+            'hum_wl_adp': hum_wl_adp,
+            'hum_wl_k': hum_wl_k,
+            'mega_batch': mega_batch,
+            'cum_cost_k': cum_cost_k,
+            'cum_cost_adp': cum_cost_adp
+        }
 
-        path1 = os.path.join(path_to_save,'cost_comparison/')
+    def _save_perturbed_performance_results(self, path_to_save, perturbed_mdp, cost_data,
+                                          all_human_wl_adp, all_human_wl_k, all_mega_batch,
+                                          run_cum_cost_k, run_cum_cost_adp):
+        """
+        Save performance results for perturbed fatigue model analysis.
+        
+        Args:
+            path_to_save (str): Base path to save results
+            perturbed_mdp: Perturbed fatigue MDP
+            cost_data (dict): Cost arrays
+            all_human_wl_adp (dict): ADP workload data
+            all_human_wl_k (dict): Kesav workload data
+            all_mega_batch (dict): Observation batch data
+            run_cum_cost_k (list): Cumulative costs for Kesav
+            run_cum_cost_adp (list): Cumulative costs for ADP
+        """
+        path1 = os.path.join(path_to_save, 'cost_comparison/')
         if not os.path.exists(path1):
             with contextlib.suppress(FileExistsError):
-                os.makedirs(path1,exist_ok=True)
+                os.makedirs(path1, exist_ok=True)
         
-        with open(os.path.join(path1 ,'perturbed_transition.pkl'),'wb') as file:
-            pickle.dump(perturbed_fatigue_mdp.P,file)
-
-        with open(os.path.join(path1 ,'all_cum_cost_k.pkl'),'wb') as file:
-            pickle.dump(run_cum_cost_k,file)
+        # Save perturbed transition matrix
+        with open(os.path.join(path1, 'perturbed_transition.pkl'), 'wb') as file:
+            pickle.dump(perturbed_mdp.P, file)
         
-
-        with open(os.path.join(path1 , 'all_cum_cost_adp.pkl'),'wb') as file:
-            pickle.dump(run_cum_cost_adp,file)
-
+        # Save pickle files
+        pickle_files = {
+            'all_cum_cost_k.pkl': run_cum_cost_k,
+            'all_cum_cost_adp.pkl': run_cum_cost_adp,
+            'all_human_wl_adp.pkl': all_human_wl_adp,
+            'all_human_wl_k.pkl': all_human_wl_k,
+            'all_mega_batch.pkl': all_mega_batch
+        }
         
-        with open(os.path.join(path1, 'all_human_wl_adp.pkl'),'wb') as file:
-            pickle.dump(all_human_wl_adp,file)
-
+        for filename, data in pickle_files.items():
+            with open(os.path.join(path1, filename), 'wb') as file:
+                pickle.dump(data, file)
         
-        with open(os.path.join(path1 , 'all_human_wl_k.pkl'),'wb') as file2:
-            pickle.dump(all_human_wl_k,file2)
+        # Save numpy arrays
+        numpy_files = {
+            'all_auto_cost_adp.npy': cost_data['auto_cost_adp'],
+            'all_human_cost_adp.npy': cost_data['human_cost_adp'],
+            'all_deferred_cost_adp.npy': cost_data['deferred_cost_adp'],
+            'all_auto_cost_adp_new.npy': cost_data['auto_cost_adp_new'],
+            'all_human_cost_adp_new.npy': cost_data['human_cost_adp_new'],
+            'all_deferred_cost_adp_new.npy': cost_data['deferred_cost_adp_new'],
+            'all_auto_cost_k.npy': cost_data['auto_cost_k'],
+            'all_human_cost_k.npy': cost_data['human_cost_k'],
+            'all_deferred_cost_k.npy': cost_data['deferred_cost_k']
+        }
         
-
-        with open(os.path.join(path1 , 'all_mega_batch.pkl'),'wb') as file3:
-            pickle.dump(all_mega_batch,file3)
-
-        
-        np.save(os.path.join(path1,'all_auto_cost_adp.npy'),all_auto_cost_adp)
-
-        np.save(os.path.join(path1,'all_human_cost_adp.npy'),all_human_cost_adp)
-
-        np.save(os.path.join(path1,'all_deferred_cost_adp.npy'),all_deferred_cost_adp)
-
-        
-        np.save(os.path.join(path1,'all_auto_cost_adp_new.npy'),all_auto_cost_adp_new)
-
-        np.save(os.path.join(path1,'all_human_cost_adp_new.npy'),all_human_cost_adp_new)
-
-        np.save(os.path.join(path1,'all_deferred_cost_adp_new.npy'),all_deferred_cost_adp_new)
-
-
-        np.save(os.path.join(path1,'all_auto_cost_k.npy'),all_auto_cost_k)
-
-        np.save(os.path.join(path1,'all_human_cost_k.npy'),all_human_cost_k)
-
-        np.save(os.path.join(path1,'all_deferred_cost_k.npy'),all_deferred_cost_k)
+        for filename, data in numpy_files.items():
+            np.save(os.path.join(path1, filename), data)
 
 
