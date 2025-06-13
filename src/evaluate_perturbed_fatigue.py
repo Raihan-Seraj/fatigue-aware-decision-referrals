@@ -16,7 +16,7 @@ def create_argument_parser():
         argparse.ArgumentParser: Configured argument parser with all required parameters
     """
     parser = argparse.ArgumentParser(
-        description="Evaluate ADP and Kesav algorithms with perturbed fatigue models for robustness analysis",
+        description="Evaluate ADP and myopic algorithms with perturbed fatigue models for robustness analysis",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
@@ -123,7 +123,7 @@ def run_perturbed_fatigue_evaluation(args, num_models=10):
     """
     Run robustness evaluation with multiple perturbed fatigue models.
     
-    This function evaluates the performance of ADP and Kesav algorithms
+    This function evaluates the performance of ADP and myopic algorithms
     across multiple randomly perturbed fatigue transition models to assess
     robustness to model uncertainty.
     

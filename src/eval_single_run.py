@@ -13,7 +13,7 @@ def create_argument_parser():
         argparse.ArgumentParser: Configured argument parser with all required parameters
     """
     parser = argparse.ArgumentParser(
-        description="Single run evaluation of ADP and Kesav algorithms with different initial fatigue states",
+        description="Single run evaluation of ADP and myopic policy with different initial fatigue states",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
@@ -105,15 +105,15 @@ def create_output_directory(base_path):
     return base_path
 
 
-def save_trajectory_data(output_path, fatigue_kesav, fatigue_adp, taskload_kesav, taskload_adp):
+def save_trajectory_data(output_path, fatigue_myopic, fatigue_adp, taskload_myopic, taskload_adp):
     """
     Save trajectory data to pickle files.
     
     Args:
         output_path (str): Directory path to save files
-        fatigue_kesav (list): Fatigue evolution for Kesav algorithm
+        fatigue_myopic (list): Fatigue evolution for myopic algorithm
         fatigue_adp (list): Fatigue evolution for ADP algorithm
-        taskload_kesav (list): Taskload evolution for Kesav algorithm
+        taskload_myopic (list): Taskload evolution for myopic algorithm
         taskload_adp (list): Taskload evolution for ADP algorithm
         
     Returns:
@@ -123,9 +123,9 @@ def save_trajectory_data(output_path, fatigue_kesav, fatigue_adp, taskload_kesav
         Creates four pickle files with trajectory data
     """
     trajectory_files = {
-        'fatigue_evolve_k.pkl': fatigue_kesav,
+        'fatigue_evolve_k.pkl': fatigue_myopic,
         'fatigue_evolve_adp.pkl': fatigue_adp,
-        'taskload_evolve_k.pkl': taskload_kesav,
+        'taskload_evolve_k.pkl': taskload_myopic,
         'taskload_evolve_adp.pkl': taskload_adp
     }
     
@@ -163,17 +163,17 @@ def run_single_evaluation(evaluator, run_number, fatigue_state_name, base_save_p
     
     # Run evaluation
     trajectories = evaluator.eval_single_run(fatigue_initial, fatigue_idx_initial)
-    fatigue_kesav, fatigue_adp, taskload_kesav, taskload_adp = trajectories
+    fatigue_myopic, fatigue_adp, taskload_myopic, taskload_adp = trajectories
     
     # Save trajectory data
-    save_trajectory_data(run_path, fatigue_kesav, fatigue_adp, taskload_kesav, taskload_adp)
+    save_trajectory_data(run_path, fatigue_myopic, fatigue_adp, taskload_myopic, taskload_adp)
 
 
 def run_comprehensive_single_evaluation(args, num_runs=10):
     """
     Run comprehensive single run evaluation across multiple runs and fatigue states.
     
-    This function evaluates both ADP and Kesav algorithms starting from different
+    This function evaluates both ADP and myopic algorithms starting from different
     initial fatigue states across multiple independent runs to analyze their
     trajectory behavior under various conditions.
     

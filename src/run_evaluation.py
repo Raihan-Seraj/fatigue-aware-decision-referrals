@@ -16,7 +16,7 @@ matplotlib.use('Agg')
 
 class Evaluations:
     """
-    Evaluation class for comparing ADP and Kesav algorithms performance.
+    Evaluation class for comparing ADP and myopic algorithms performance.
     
     This class provides comprehensive evaluation methods for fatigue-aware
     decision referral algorithms, including performance metrics, plotting,
@@ -118,7 +118,7 @@ class Evaluations:
         
     def compute_performance(self):
         """
-        Compute comprehensive performance comparison between ADP and Kesav algorithms.
+        Compute comprehensive performance comparison between ADP and myopic algorithms.
         
         This method runs Monte Carlo simulations to evaluate both algorithms across
         multiple scenarios and saves detailed cost breakdowns and cumulative costs.
@@ -226,7 +226,7 @@ class Evaluations:
             _, batched_posterior_h0, batched_posterior_h1 = mega_batch[t]
             
             # Compute optimal policies
-            wl_k, deferred_idx_k = ut.compute_kesav_policy(
+            wl_k, deferred_idx_k = ut.compute_myopic_policy(
                 F_k, batched_posterior_h0, batched_posterior_h1
             )
             wl_adp, deferred_idx_adp = self.compute_adp_solution(
@@ -271,10 +271,10 @@ class Evaluations:
         
         Args:
             ut (Utils): Utility object
-            F_k (int): Kesav algorithm fatigue state
+            F_k (int): myopic algorithm fatigue state
             F_adp (int): ADP algorithm fatigue state
             batched_posterior_h1 (list): Posterior probabilities for H1
-            deferred_idx_k (list): Kesav deferred task indices
+            deferred_idx_k (list): myopic deferred task indices
             deferred_idx_adp (list): ADP deferred task indices
             
         Returns:
@@ -341,9 +341,9 @@ class Evaluations:
         Args:
             cost_data (dict): Cost arrays
             all_human_wl_adp (dict): ADP workload data
-            all_human_wl_k (dict): Kesav workload data
+            all_human_wl_k (dict): myopic workload data
             all_mega_batch (dict): Observation batch data
-            run_cum_cost_k (list): Cumulative costs for Kesav
+            run_cum_cost_k (list): Cumulative costs for myopic
             run_cum_cost_adp (list): Cumulative costs for ADP
         """
         path1 = self.global_path + 'cost_comparison/'
@@ -382,11 +382,11 @@ class Evaluations:
 
     def run_evaluation(self):
         """
-        Run a single evaluation trajectory comparing ADP and Kesav algorithms.
+        Run a single evaluation trajectory comparing ADP and myopic algorithms.
         
         Returns:
-            tuple: (fatigue_evolution_kesav, fatigue_evolution_adp, 
-                   taskload_evolution_kesav, taskload_evolution_adp)
+            tuple: (fatigue_evolution_myopic, fatigue_evolution_adp, 
+                   taskload_evolution_myopic, taskload_evolution_adp)
         """
         ut = Utils(self.args)
         V_bar = self._load_value_function()
@@ -396,9 +396,9 @@ class Evaluations:
         idx_F_k = idx_F_adp = 0
         
         # Initialize tracking lists
-        fatigue_evolution_kesav = []
+        fatigue_evolution_myopic = []
         fatigue_evolution_adp = []
-        taskload_evolution_kesav = []
+        taskload_evolution_myopic = []
         taskload_evolution_adp = []
         
         # Generate observations for entire horizon
@@ -406,28 +406,28 @@ class Evaluations:
         
         for t in range(self.args.horizon):
             # Record current fatigue states
-            fatigue_evolution_kesav.append(F_k)
+            fatigue_evolution_myopic.append(F_k)
             fatigue_evolution_adp.append(F_adp)
             
             # Get observations
             _, batched_posterior_h0, batched_posterior_h1 = mega_obs[t]
             
             # Compute optimal policies
-            wl_k, _ = ut.compute_kesav_policy(F_k, batched_posterior_h0, batched_posterior_h1)
+            wl_k, _ = ut.compute_myopic_policy(F_k, batched_posterior_h0, batched_posterior_h1)
             wl_adp, _ = self.compute_adp_solution(
                 batched_posterior_h0, batched_posterior_h1, F_adp, idx_F_adp, V_bar[t], ut
             )
             
             # Record workloads
-            taskload_evolution_kesav.append(wl_k)
+            taskload_evolution_myopic.append(wl_k)
             taskload_evolution_adp.append(wl_adp)
             
             # Update fatigue states
             F_k, idx_F_k = self._update_fatigue_state(F_k, wl_k, ut)
             F_adp, idx_F_adp = self._update_fatigue_state(F_adp, wl_adp, ut)
         
-        return (fatigue_evolution_kesav, fatigue_evolution_adp, 
-                taskload_evolution_kesav, taskload_evolution_adp)
+        return (fatigue_evolution_myopic, fatigue_evolution_adp, 
+                taskload_evolution_myopic, taskload_evolution_adp)
 
     def run_perf_eval(self):
         """
@@ -446,40 +446,40 @@ class Evaluations:
         num_runs = self.args.num_eval_runs
         
         # Initialize tracking lists
-        all_fatigue_kesav = []
+        all_fatigue_myopic = []
         all_fatigue_adp = []
-        all_taskload_kesav = []
+        all_taskload_myopic = []
         all_taskload_adp = []
         
         # Run evaluations
         for run in tqdm(range(num_runs), desc="Running trajectory evaluations"):
             trajectories = self.run_evaluation()
-            all_fatigue_kesav.append(trajectories[0])
+            all_fatigue_myopic.append(trajectories[0])
             all_fatigue_adp.append(trajectories[1])
-            all_taskload_kesav.append(trajectories[2])
+            all_taskload_myopic.append(trajectories[2])
             all_taskload_adp.append(trajectories[3])
         
         # Save trajectory data
         self._save_trajectory_data(
-            all_fatigue_kesav, all_fatigue_adp, 
-            all_taskload_kesav, all_taskload_adp
+            all_fatigue_myopic, all_fatigue_adp, 
+            all_taskload_myopic, all_taskload_adp
         )
         
         # Generate plots
         self._generate_comparison_plots(
-            all_fatigue_kesav, all_fatigue_adp,
-            all_taskload_kesav, all_taskload_adp
+            all_fatigue_myopic, all_fatigue_adp,
+            all_taskload_myopic, all_taskload_adp
         )
 
-    def _save_trajectory_data(self, all_fatigue_kesav, all_fatigue_adp, 
-                            all_taskload_kesav, all_taskload_adp):
+    def _save_trajectory_data(self, all_fatigue_myopic, all_fatigue_adp, 
+                            all_taskload_myopic, all_taskload_adp):
         """
         Save trajectory data to pickle files.
         
         Args:
-            all_fatigue_kesav (list): Fatigue trajectories for Kesav algorithm
+            all_fatigue_myopic (list): Fatigue trajectories for myopic algorithm
             all_fatigue_adp (list): Fatigue trajectories for ADP algorithm
-            all_taskload_kesav (list): Taskload trajectories for Kesav algorithm
+            all_taskload_myopic (list): Taskload trajectories for myopic algorithm
             all_taskload_adp (list): Taskload trajectories for ADP algorithm
         """
         path_name = self.global_path + '/plot_analysis/'
@@ -488,9 +488,9 @@ class Evaluations:
                 os.makedirs(path_name, exist_ok=True)
         
         data_files = {
-            'all_fatigue_k.pkl': all_fatigue_kesav,
+            'all_fatigue_k.pkl': all_fatigue_myopic,
             'all_fatigue_adp.pkl': all_fatigue_adp,
-            'all_taskload_k.pkl': all_taskload_kesav,
+            'all_taskload_k.pkl': all_taskload_myopic,
             'all_taskload_adp.pkl': all_taskload_adp
         }
         
@@ -498,22 +498,22 @@ class Evaluations:
             with open(path_name + filename, 'wb') as file:
                 pickle.dump(data, file)
 
-    def _generate_comparison_plots(self, all_fatigue_kesav, all_fatigue_adp,
-                                 all_taskload_kesav, all_taskload_adp):
+    def _generate_comparison_plots(self, all_fatigue_myopic, all_fatigue_adp,
+                                 all_taskload_myopic, all_taskload_adp):
         """
         Generate comparison plots for fatigue and taskload evolution.
         
         Args:
-            all_fatigue_kesav (list): Fatigue trajectories for Kesav algorithm
+            all_fatigue_myopic (list): Fatigue trajectories for myopic algorithm
             all_fatigue_adp (list): Fatigue trajectories for ADP algorithm
-            all_taskload_kesav (list): Taskload trajectories for Kesav algorithm
+            all_taskload_myopic (list): Taskload trajectories for myopic algorithm
             all_taskload_adp (list): Taskload trajectories for ADP algorithm
         """
         path_name = self.global_path + '/plot_analysis/'
         time_steps = np.arange(1, self.args.horizon + 1, 1)
         
         # Compute statistics for fatigue
-        fatigue_stats = self._compute_trajectory_statistics(all_fatigue_kesav, all_fatigue_adp)
+        fatigue_stats = self._compute_trajectory_statistics(all_fatigue_myopic, all_fatigue_adp)
         
         # Plot fatigue evolution
         self._plot_evolution_comparison(
@@ -522,7 +522,7 @@ class Evaluations:
         )
         
         # Compute statistics for taskload
-        taskload_stats = self._compute_trajectory_statistics(all_taskload_kesav, all_taskload_adp)
+        taskload_stats = self._compute_trajectory_statistics(all_taskload_myopic, all_taskload_adp)
         
         # Plot taskload evolution
         self._plot_evolution_comparison(
@@ -530,21 +530,21 @@ class Evaluations:
             path_name + 'taskload_evolution_comparison.pdf'
         )
 
-    def _compute_trajectory_statistics(self, kesav_data, adp_data):
+    def _compute_trajectory_statistics(self, myopic_data, adp_data):
         """
         Compute median and percentile statistics for trajectory data.
         
         Args:
-            kesav_data (list): Trajectory data for Kesav algorithm
+            myopic_data (list): Trajectory data for myopic algorithm
             adp_data (list): Trajectory data for ADP algorithm
             
         Returns:
             dict: Statistics including medians and percentiles
         """
         return {
-            'median_k': np.median(kesav_data, axis=0),
-            'lower_k': np.percentile(kesav_data, 25, axis=0),
-            'upper_k': np.percentile(kesav_data, 75, axis=0),
+            'median_k': np.median(myopic_data, axis=0),
+            'lower_k': np.percentile(myopic_data, 25, axis=0),
+            'upper_k': np.percentile(myopic_data, 75, axis=0),
             'median_adp': np.median(adp_data, axis=0),
             'lower_adp': np.percentile(adp_data, 25, axis=0),
             'upper_adp': np.percentile(adp_data, 75, axis=0)
@@ -562,7 +562,7 @@ class Evaluations:
         """
         plt.figure(figsize=(10, 6))
         
-        # Plot Kesav algorithm
+        # Plot myopic algorithm
         plt.step(time_steps, stats['median_k'], color='black', where='post', 
                 label='K-Algorithm', linewidth=2)
         plt.fill_between(time_steps, stats['lower_k'], stats['upper_k'],
@@ -591,8 +591,8 @@ class Evaluations:
             initial_fatigue_index (int): Initial fatigue state index
             
         Returns:
-            tuple: (fatigue_evolution_kesav, fatigue_evolution_adp, 
-                   taskload_evolution_kesav, taskload_evolution_adp)
+            tuple: (fatigue_evolution_myopic, fatigue_evolution_adp, 
+                   taskload_evolution_myopic, taskload_evolution_adp)
         """
         ut = Utils(self.args)
         V_bar = self._load_value_function()
@@ -602,9 +602,9 @@ class Evaluations:
         idx_F_k = idx_F_adp = initial_fatigue_index
         
         # Initialize tracking lists
-        fatigue_evolution_kesav = []
+        fatigue_evolution_myopic = []
         fatigue_evolution_adp = []
-        taskload_evolution_kesav = []
+        taskload_evolution_myopic = []
         taskload_evolution_adp = []
         
         # Generate observations for entire horizon
@@ -612,28 +612,28 @@ class Evaluations:
         
         for t in range(self.args.horizon):
             # Record current fatigue states
-            fatigue_evolution_kesav.append(F_k)
+            fatigue_evolution_myopic.append(F_k)
             fatigue_evolution_adp.append(F_adp)
             
             # Get observations
             _, batched_posterior_h0, batched_posterior_h1 = mega_obs[t]
             
             # Compute optimal policies
-            wl_k, _ = ut.compute_kesav_policy(F_k, batched_posterior_h0, batched_posterior_h1)
+            wl_k, _ = ut.compute_myopic_policy(F_k, batched_posterior_h0, batched_posterior_h1)
             wl_adp, _ = self.compute_adp_solution(
                 batched_posterior_h0, batched_posterior_h1, F_adp, idx_F_adp, V_bar[t], ut
             )
             
             # Record workloads
-            taskload_evolution_kesav.append(wl_k)
+            taskload_evolution_myopic.append(wl_k)
             taskload_evolution_adp.append(wl_adp)
             
             # Update fatigue states
             F_k, idx_F_k = self._update_fatigue_state(F_k, wl_k, ut)
             F_adp, idx_F_adp = self._update_fatigue_state(F_adp, wl_adp, ut)
         
-        return (fatigue_evolution_kesav, fatigue_evolution_adp, 
-                taskload_evolution_kesav, taskload_evolution_adp)
+        return (fatigue_evolution_myopic, fatigue_evolution_adp, 
+                taskload_evolution_myopic, taskload_evolution_adp)
 
     def eval_single_run_perturbed_fatigue(self, original_fatigue_mdp, perturbed_fatigue_mdp):
         """
@@ -644,8 +644,8 @@ class Evaluations:
             perturbed_fatigue_mdp: Perturbed fatigue MDP for simulation
             
         Returns:
-            tuple: (fatigue_evolution_kesav, fatigue_evolution_adp, 
-                   taskload_evolution_kesav, taskload_evolution_adp)
+            tuple: (fatigue_evolution_myopic, fatigue_evolution_adp, 
+                   taskload_evolution_myopic, taskload_evolution_adp)
         """
         ut = Utils(self.args)
         V_bar = self._load_value_function()
@@ -655,9 +655,9 @@ class Evaluations:
         idx_F_k = idx_F_adp = 0
         
         # Initialize tracking lists
-        fatigue_evolution_kesav = []
+        fatigue_evolution_myopic = []
         fatigue_evolution_adp = []
-        taskload_evolution_kesav = []
+        taskload_evolution_myopic = []
         taskload_evolution_adp = []
         
         # Generate observations for entire horizon
@@ -665,20 +665,20 @@ class Evaluations:
         
         for t in range(self.args.horizon):
             # Record current fatigue states
-            fatigue_evolution_kesav.append(F_k)
+            fatigue_evolution_myopic.append(F_k)
             fatigue_evolution_adp.append(F_adp)
             
             # Get observations
             _, batched_posterior_h0, batched_posterior_h1 = mega_obs[t]
             
             # Compute optimal policies
-            wl_k, _ = ut.compute_kesav_policy(F_k, batched_posterior_h0, batched_posterior_h1)
+            wl_k, _ = ut.compute_myopic_policy(F_k, batched_posterior_h0, batched_posterior_h1)
             wl_adp, _ = self.compute_adp_solution(
                 batched_posterior_h0, batched_posterior_h1, F_adp, idx_F_adp, V_bar[t], ut
             )
             
             # Record workloads
-            taskload_evolution_kesav.append(wl_k)
+            taskload_evolution_myopic.append(wl_k)
             taskload_evolution_adp.append(wl_adp)
             
             # Update fatigue states using perturbed model
@@ -687,8 +687,8 @@ class Evaluations:
             F_k, idx_F_k = perturbed_fatigue_mdp.next_state(F_k, wl_k_discrete)
             F_adp, idx_F_adp = perturbed_fatigue_mdp.next_state(F_adp, wl_adp_discrete)
         
-        return (fatigue_evolution_kesav, fatigue_evolution_adp, 
-                taskload_evolution_kesav, taskload_evolution_adp)
+        return (fatigue_evolution_myopic, fatigue_evolution_adp, 
+                taskload_evolution_myopic, taskload_evolution_adp)
 
     def compute_performance_perturbed_fatigue(self, perturbed_fatigue_mdp, path_to_save):
         """
@@ -778,7 +778,7 @@ class Evaluations:
             _, batched_posterior_h0, batched_posterior_h1 = mega_batch[t]
             
             # Compute optimal policies
-            wl_k, deferred_idx_k = ut.compute_kesav_policy(
+            wl_k, deferred_idx_k = ut.compute_myopic_policy(
                 F_k, batched_posterior_h0, batched_posterior_h1
             )
             wl_adp, deferred_idx_adp = self.compute_adp_solution(
@@ -830,9 +830,9 @@ class Evaluations:
             perturbed_mdp: Perturbed fatigue MDP
             cost_data (dict): Cost arrays
             all_human_wl_adp (dict): ADP workload data
-            all_human_wl_k (dict): Kesav workload data
+            all_human_wl_k (dict): myopic workload data
             all_mega_batch (dict): Observation batch data
-            run_cum_cost_k (list): Cumulative costs for Kesav
+            run_cum_cost_k (list): Cumulative costs for myopic
             run_cum_cost_adp (list): Cumulative costs for ADP
         """
         path1 = os.path.join(path_to_save, 'cost_comparison/')

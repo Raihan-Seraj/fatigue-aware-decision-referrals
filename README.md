@@ -1,6 +1,6 @@
 # Fatigue-Aware Decision Referrals in Human-Automation Teams
 
-This repository contains the implementation of fatigue-aware decision referral algorithms for human-automation teams. The code implements an Approximate Dynamic Programming (ADP) approach and compares it with the Kesav algorithm for optimal task allocation under operator fatigue.
+This repository contains the implementation of Fatigue and taskload dependent decision referrals for joint binary classification in human automation teams. The code implements an Approximate Dynamic Programming (ADP) approach and compares it with a myopic policy for optimal task allocation under operator fatigue.
 
 ## 📋 Table of Contents
 

@@ -284,9 +284,9 @@ class Utils(object):
 
         return human_allocation_indices, G_bar_w
 
-    def compute_kesav_policy(self, F_t, batched_posterior_h0, batched_posterior_h1):
+    def compute_myopic_policy(self, F_t, batched_posterior_h0, batched_posterior_h1):
         """
-        Compute the optimal policy using Kesav's algorithm.
+        Compute the optimal policy using myopic's algorithm.
         
         Args:
             F_t (int): Fatigue state at time t
