@@ -465,11 +465,7 @@ class Evaluations:
             all_taskload_myopic, all_taskload_adp
         )
         
-        # Generate plots
-        self._generate_comparison_plots(
-            all_fatigue_myopic, all_fatigue_adp,
-            all_taskload_myopic, all_taskload_adp
-        )
+    
 
     def _save_trajectory_data(self, all_fatigue_myopic, all_fatigue_adp, 
                             all_taskload_myopic, all_taskload_adp):
@@ -498,90 +494,7 @@ class Evaluations:
             with open(path_name + filename, 'wb') as file:
                 pickle.dump(data, file)
 
-    def _generate_comparison_plots(self, all_fatigue_myopic, all_fatigue_adp,
-                                 all_taskload_myopic, all_taskload_adp):
-        """
-        Generate comparison plots for fatigue and taskload evolution.
-        
-        Args:
-            all_fatigue_myopic (list): Fatigue trajectories for myopic algorithm
-            all_fatigue_adp (list): Fatigue trajectories for ADP algorithm
-            all_taskload_myopic (list): Taskload trajectories for myopic algorithm
-            all_taskload_adp (list): Taskload trajectories for ADP algorithm
-        """
-        path_name = self.global_path + '/plot_analysis/'
-        time_steps = np.arange(1, self.args.horizon + 1, 1)
-        
-        # Compute statistics for fatigue
-        fatigue_stats = self._compute_trajectory_statistics(all_fatigue_myopic, all_fatigue_adp)
-        
-        # Plot fatigue evolution
-        self._plot_evolution_comparison(
-            time_steps, fatigue_stats, 'Fatigue Level', 
-            path_name + 'fatigue_evolution_comparison.pdf'
-        )
-        
-        # Compute statistics for taskload
-        taskload_stats = self._compute_trajectory_statistics(all_taskload_myopic, all_taskload_adp)
-        
-        # Plot taskload evolution
-        self._plot_evolution_comparison(
-            time_steps, taskload_stats, 'Workload level',
-            path_name + 'taskload_evolution_comparison.pdf'
-        )
-
-    def _compute_trajectory_statistics(self, myopic_data, adp_data):
-        """
-        Compute median and percentile statistics for trajectory data.
-        
-        Args:
-            myopic_data (list): Trajectory data for myopic algorithm
-            adp_data (list): Trajectory data for ADP algorithm
-            
-        Returns:
-            dict: Statistics including medians and percentiles
-        """
-        return {
-            'median_k': np.median(myopic_data, axis=0),
-            'lower_k': np.percentile(myopic_data, 25, axis=0),
-            'upper_k': np.percentile(myopic_data, 75, axis=0),
-            'median_adp': np.median(adp_data, axis=0),
-            'lower_adp': np.percentile(adp_data, 25, axis=0),
-            'upper_adp': np.percentile(adp_data, 75, axis=0)
-        }
-
-    def _plot_evolution_comparison(self, time_steps, stats, ylabel, filename):
-        """
-        Create and save evolution comparison plot.
-        
-        Args:
-            time_steps (np.array): Time step array
-            stats (dict): Statistics dictionary
-            ylabel (str): Y-axis label
-            filename (str): Output filename
-        """
-        plt.figure(figsize=(10, 6))
-        
-        # Plot myopic algorithm
-        plt.step(time_steps, stats['median_k'], color='black', where='post', 
-                label='K-Algorithm', linewidth=2)
-        plt.fill_between(time_steps, stats['lower_k'], stats['upper_k'],
-                        step='post', alpha=0.2, color='black')
-        
-        # Plot ADP algorithm
-        plt.step(time_steps, stats['median_adp'], color='orange', where='post', 
-                label='ADP', linewidth=2)
-        plt.fill_between(time_steps, stats['lower_adp'], stats['upper_adp'],
-                        step='post', alpha=0.2, color='orange')
-        
-        plt.grid(True, alpha=0.3)
-        plt.xlabel('Time')
-        plt.ylabel(ylabel)
-        plt.legend()
-        plt.tight_layout()
-        plt.savefig(filename, dpi=300, bbox_inches='tight')
-        plt.close()
-
+   
     def eval_single_run(self, initial_fatigue_state, initial_fatigue_index):
         """
         Evaluate a single run with specified initial fatigue state.
