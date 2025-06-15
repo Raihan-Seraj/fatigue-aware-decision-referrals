@@ -197,17 +197,5 @@ python src/plotting_scripts.py
 ls results/
 ```
 
-## 📊 Expected Runtime
-
-Approximate execution times on a modern laptop:
-
-| Script | Default Parameters | Reduced Parameters |
-|--------|-------------------|-------------------|
-| `approximate_dp.py` | 10-30 minutes | 2-5 minutes |
-| `eval_single_run.py` | 5-10 minutes | 1-2 minutes |
-| `evaluate_perturbed_fatigue.py` | 15-45 minutes | 3-8 minutes |
-| `plotting_scripts.py` | 1-2 minutes | 30 seconds |
-
-
 
 
